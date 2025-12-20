@@ -118,24 +118,12 @@ impl Cart {
 }
 
 fn compute_header_checksum(rom: &[u8]) -> u8 {
-    let mut checksum = 0u8;
-    for byte in &rom[OFFSET_TITLE_START..=OFFSET_MASK_ROM_VERSION] {
-        checksum = checksum.wrapping_sub(*byte).wrapping_sub(1);
-    }
-    checksum
+    let header_bytes = &rom[OFFSET_TITLE_START..=OFFSET_MASK_ROM_VERSION];
+    header_bytes
+        .iter()
+        .fold(0, |c, &b| c.wrapping_sub(b).wrapping_sub(1))
 }
 
 fn ascii_from_bytes(bytes: &[u8]) -> String {
-    let mut out = String::new();
-    for &b in bytes {
-        if b == 0 {
-            break;
-        }
-        if b.is_ascii_graphic() || b == b' ' {
-            out.push(b as char);
-        } else {
-            out.push('?');
-        }
-    }
-    out
+    String::from_utf8_lossy(bytes.trim_ascii_end()).to_string()
 }
