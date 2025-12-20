@@ -1,0 +1,3 @@
+[workspace]
+members = ["boy-cli","boy-core"]
+resolver = "3"
