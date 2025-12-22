@@ -36,6 +36,16 @@ impl CPU {
     }
 
     #[inline]
+    fn sp_inc(&mut self, val: u16) {
+        self.r.sp = self.r.sp.wrapping_add(val)
+    }
+
+    #[inline]
+    fn sp_sub(&mut self, val: u16) {
+        self.r.sp = self.r.sp.wrapping_sub(val)
+    }
+
+    #[inline]
     pub fn rb(&mut self, mmu: &MMU) -> u8 {
         let v = mmu.rb(self.r.pc);
         self.pc_inc(1);
@@ -47,6 +57,19 @@ impl CPU {
         let v = mmu.rw(self.r.pc);
         self.pc_inc(2);
         v
+    }
+
+    #[inline]
+    fn push(&mut self, mmu: &mut MMU, val: u16) {
+        self.sp_sub(2);
+        mmu.ww(self.r.sp, val);
+    }
+
+    #[inline]
+    fn pop(&mut self, mmu: &MMU) -> u16 {
+        let val = mmu.rw(self.r.sp);
+        self.sp_inc(2);
+        val
     }
 
     pub fn step(&mut self, mmu: &mut MMU) -> Cycles {
