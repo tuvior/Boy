@@ -79,7 +79,11 @@ impl CartHeader {
 
 impl std::fmt::Display for CartHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TODO")
+        write!(
+            f,
+            "Title: {}, CGB Flag: 0x{:02X}, Cartridge Type: 0x{:02X}, ROM Size: 0x{:02X}, RAM Size: 0x{:02X}",
+            self.title, self.cgb_flag, self.cartridge_type, self.rom_size, self.ram_size
+        )
     }
 }
 
@@ -113,7 +117,7 @@ impl Cart {
     }
 
     pub fn read_rom(&self, addr: u16) -> u8 {
-        self.rom.get(addr as usize).copied().unwrap_or(0xFF)
+        self.rom[addr as usize]
     }
 }
 

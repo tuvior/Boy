@@ -1,5 +1,7 @@
 use std::env;
 use std::process;
+use boy_core::cart::Cart;
+use boy_core::mmu::MMU;
 
 fn main() {
     let mut args = env::args();
@@ -20,7 +22,7 @@ fn main() {
         }
     };
 
-    let cart = match boy_core::cart::Cart::from_bytes(rom) {
+    let cart = match Cart::from_bytes(rom) {
         Ok(cart) => cart,
         Err(err) => {
             eprintln!("failed to parse rom header: {err}");
@@ -29,20 +31,13 @@ fn main() {
     };
 
     let header = &cart.header;
-    println!("title: {}", header.title);
-    println!("cgb_flag: 0x{:02X}", header.cgb_flag);
-    println!("new_licensee_code: {}", header.new_licensee_code);
-    println!("sgb_flag: 0x{:02X}", header.sgb_flag);
-    println!("cartridge_type: 0x{:02X}", header.cartridge_type);
-    println!("rom_size: 0x{:02X}", header.rom_size);
-    println!("ram_size: 0x{:02X}", header.ram_size);
-    println!("destination_code: 0x{:02X}", header.destination_code);
-    println!("old_licensee_code: 0x{:02X}", header.old_licensee_code);
-    println!("mask_rom_version: 0x{:02X}", header.mask_rom_version);
-    println!("header_checksum: 0x{:02X}", header.header_checksum);
-    println!(
-        "computed_header_checksum: 0x{:02X}",
-        header.computed_header_checksum
-    );
-    println!("global_checksum: 0x{:04X}", header.global_checksum);
+    println!("Loaded ROM: {header}");
+
+    let mmu = MMU::new(cart);
+
+    let entry = mmu.rb(0x0100);
+    println!("Entry: {entry}");
+
+    let title = mmu.rb(0x0134);
+    println!("Title: {title}");
 }
