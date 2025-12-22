@@ -1,7 +1,8 @@
+use boy_core::cart::Cart;
+use boy_core::cpu::CPU;
+use boy_core::mmu::MMU;
 use std::env;
 use std::process;
-use boy_core::cart::Cart;
-use boy_core::mmu::MMU;
 
 fn main() {
     let mut args = env::args();
@@ -33,11 +34,11 @@ fn main() {
     let header = &cart.header;
     println!("Loaded ROM: {header}");
 
-    let mmu = MMU::new(cart);
+    let mut mmu = MMU::new(cart);
+    let mut cpu = CPU::init();
 
-    let entry = mmu.rb(0x0100);
-    println!("Entry: {entry}");
-
-    let title = mmu.rb(0x0134);
-    println!("Title: {title}");
+    for ins in 0..500 {
+        let res = cpu.step(&mut mmu);
+        println!("Step {ins}: {res}")
+    }
 }
