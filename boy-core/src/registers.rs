@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Default)]
-struct Registers {
+pub struct Registers {
     pub a: u8, // Accumulator
     f: u8,     // Flags
 
