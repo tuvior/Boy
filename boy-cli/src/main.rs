@@ -1,5 +1,5 @@
 use boy_core::cart::Cart;
-use boy_core::cpu::CPU;
+use boy_core::cpu::cpu::CPU;
 use boy_core::mmu::MMU;
 use std::env;
 use std::process;
