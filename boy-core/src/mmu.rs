@@ -50,17 +50,16 @@ impl MMU {
     #[inline]
     pub fn wb(&mut self, addr: u16, value: u8) {
         match addr {
-            // 0x0000..=0x7FFF => (),
+            0x0000..=0x7FFF => (), // Unwriteable
             0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize] = value,
             0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize] = value,
             0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize] = value,
             0xE000..=0xFDFF => self.wram[(addr - 0xE000) as usize] = value,
             0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize] = value,
-            // 0xFEA0..=0xFEFF => (),
+            0xFEA0..=0xFEFF => (), // Unwriteable
             0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize] = value,
             0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize] = value,
             0xFFFF => self.ie = value,
-            _ => (), // Unwritable memory
         }
     }
 
