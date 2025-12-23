@@ -1022,6 +1022,7 @@ fn op_dec_a(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     1
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_b_b(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.b = cpu.r.b;
     1
@@ -1067,6 +1068,7 @@ fn op_ld_c_b(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     1
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_c_c(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.c = cpu.r.c;
     1
@@ -1112,6 +1114,7 @@ fn op_ld_d_c(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     1
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_d_d(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.d = cpu.r.d;
     1
@@ -1157,6 +1160,7 @@ fn op_ld_e_d(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     1
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_e_e(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.e = cpu.r.e;
     1
@@ -1202,6 +1206,7 @@ fn op_ld_h_e(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     1
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_h_h(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.h = cpu.r.h;
     1
@@ -1247,6 +1252,7 @@ fn op_ld_l_h(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     1
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_l_l(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.l = cpu.r.l;
     1
@@ -1339,6 +1345,7 @@ fn op_ld_a_hl(cpu: &mut CPU, mmu: &mut MMU) -> Cycles {
     2
 }
 
+#[allow(clippy::self_assignment, dead_code)]
 fn op_ld_a_a(cpu: &mut CPU, _: &mut MMU) -> Cycles {
     cpu.r.a = cpu.r.a;
     1

@@ -38,7 +38,6 @@ impl MMU {
             0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize],
             0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize],
             0xFFFF => self.ie,
-            _ => 0xFF, // Unmapped memory returns 0xFF
         }
     }
 
