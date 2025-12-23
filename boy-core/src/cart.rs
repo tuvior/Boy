@@ -129,5 +129,6 @@ fn compute_header_checksum(rom: &[u8]) -> u8 {
 }
 
 fn ascii_from_bytes(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes.trim_ascii_end()).to_string()
+    let term = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
+    String::from_utf8_lossy(&bytes[..term]).to_string()
 }
