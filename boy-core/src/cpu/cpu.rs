@@ -6,7 +6,7 @@ use crate::{mmu::MMU, registers::Registers};
 pub struct CPU {
     pub r: Registers,
     pub ime: bool, // IME: Interrupt master enable flag
-    ime_pending: bool,
+    ime_delay: u8,
     halted: bool,
     stopped: bool,
 }
@@ -31,7 +31,7 @@ impl CPU {
         Self {
             r,
             ime: false,
-            ime_pending: false,
+            ime_delay: 0,
             halted: false,
             stopped: false,
         }
@@ -43,9 +43,6 @@ impl CPU {
             return 1;
         }
 
-        let apply_ime = self.ime_pending;
-        self.ime_pending = false;
-
         let op = self.rb(mmu);
 
         let cycles = if op == 0xCB {
@@ -55,8 +52,13 @@ impl CPU {
             (OP_TABLE[op as usize])(self, mmu)
         };
 
-        if apply_ime {
-            self.ime = true;
+        // The effect of ei is delayed by one instruction. 
+        // This means that ei followed immediately by di does not allow any interrupts between them.
+        if self.ime_delay > 0 {
+            self.ime_delay -= 1;
+            if self.ime_delay == 0 {
+                self.ime = true;
+            }
         }
 
         cycles
@@ -105,7 +107,7 @@ impl CPU {
     }
 
     pub fn set_ime_pending(&mut self, val: bool) {
-        self.ime_pending = val;
+        self.ime_delay = if val { 2 } else { 0 };
     }
 
     pub fn stop(&mut self) {
