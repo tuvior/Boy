@@ -37,8 +37,7 @@ fn main() {
     let mut mmu = MMU::new(cart);
     let mut cpu = CPU::init();
 
-    for ins in 0..500 {
-        let res = cpu.step(&mut mmu);
-        println!("Step {ins}: {res}")
+    loop {
+        cpu.step(&mut mmu);
     }
 }
