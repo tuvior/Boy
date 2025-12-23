@@ -1,4 +1,6 @@
-use crate::cart::Cart;
+use crate::{cart::Cart, interrupt::INTERRUPT_MASK};
+
+const IF_ADDR: u16 = 0xFF0F;
 
 pub struct MMU {
     cart: Cart,         // [0x0000 - 0x7FFF] - Cartridge ROM
@@ -66,5 +68,30 @@ impl MMU {
     pub fn ww(&mut self, addr: u16, value: u16) {
         self.wb(addr, (value & 0x00FF) as u8);
         self.wb(addr.wrapping_add(1), (value >> 8) as u8);
+    }
+
+    pub fn pending_interrupts(&self) -> u8 {
+        let mask = INTERRUPT_MASK;
+        let if_ = self.if_();
+
+        self.ie & if_ & mask
+    }
+
+    pub fn request_interrupt(&mut self, bit: u8) {
+        let if_ = self.if_() | bit;
+        self.set_if_(if_);
+    }
+
+    pub fn clear_interrupt(&mut self, bit: u8) {
+        let if_ = self.if_() & !bit;
+        self.set_if_(if_);
+    }
+
+    fn if_(&self) -> u8 {
+        self.rb(IF_ADDR) | 0xE0
+    }
+
+    fn set_if_(&mut self, value: u8) {
+        self.wb(IF_ADDR, value | 0xE0)
     }
 }

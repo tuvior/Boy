@@ -1,6 +1,7 @@
 use core::panic;
 
 use crate::cpu::instructions::*;
+use crate::interrupt::{INTERRUPT_CYCLES, highest_priority};
 use crate::{mmu::MMU, registers::Registers};
 
 pub struct CPU {
@@ -38,9 +39,23 @@ impl CPU {
     }
 
     pub fn step(&mut self, mmu: &mut MMU) -> Cycles {
-        // No interrupt handling for now
-        if self.stopped || self.halted {
+        if self.halted {
+            if mmu.pending_interrupts() != 0 {
+                self.halted = false;
+            } else {
+                return 1;
+            }
+        }
+
+        // stubbed
+        if self.stopped {
             return 1;
+        }
+
+        if self.ime
+            && let Some(cycles) = self.service_interrupts(mmu)
+        {
+            return cycles;
         }
 
         let op = self.rb(mmu);
@@ -52,7 +67,7 @@ impl CPU {
             (OP_TABLE[op as usize])(self, mmu)
         };
 
-        // The effect of ei is delayed by one instruction. 
+        // The effect of ei is delayed by one instruction.
         // This means that ei followed immediately by di does not allow any interrupts between them.
         if self.ime_delay > 0 {
             self.ime_delay -= 1;
@@ -62,6 +77,17 @@ impl CPU {
         }
 
         cycles
+    }
+
+    fn service_interrupts(&mut self, mmu: &mut MMU) -> Option<Cycles> {
+        let pending = mmu.pending_interrupts();
+        let interrupt = highest_priority(pending)?;
+
+        self.ime = false;
+        mmu.clear_interrupt(interrupt.bit());
+        call(self, mmu, interrupt.vector());
+
+        Some(INTERRUPT_CYCLES)
     }
 
     pub fn pc_inc(&mut self, val: u16) {

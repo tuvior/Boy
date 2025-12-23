@@ -195,7 +195,8 @@ pub fn op_nop(_: &mut CPU, _: &mut MMU) -> Cycles {
 }
 
 pub fn op_stop(cpu: &mut CPU, mmu: &mut MMU) -> Cycles {
-    let _ = cpu.rb(mmu);
+    // STOP is a 2 byte instruction
+    cpu.rb(mmu);
     cpu.stop();
     1
 }

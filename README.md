@@ -12,7 +12,7 @@ This is a learning-focused project with an emphasis on **CPU correctness** rathe
 - [x] Cart loading
 - [x] Basic MMU
 - [x] CPU instructions
-- [ ] Interrupts
+- [x] Interrupts
 - [ ] PPU
 - [ ] Graphics
 - [ ] Input
