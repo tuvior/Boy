@@ -37,6 +37,7 @@ pub struct PPU {
     mode: Mode,
     dot: u16,
     frame_buffer: [u8; SCREEN_W as usize * SCREEN_H as usize],
+    stat_latch: bool,
 }
 
 // LCDC
@@ -48,6 +49,11 @@ pub struct PPU {
 // 2 - OBJ size: 0 = 8×8; 1 = 8×16
 // 1 - OBJ enable: 0 = Off; 1 = On
 // 0 - BG & Window enable: 0 = Off; 1 = On
+
+const STAT_LY_LYC: u8 = 6;
+const STAT_OAM_SCAN: u8 = 5;
+const STAT_VBLANK: u8 = 4;
+const STAT_HBLANK: u8 = 3;
 
 // STAT
 //   6 - LYC int select (Read/Write): If set, selects the LYC == LY condition for the STAT interrupt
@@ -76,6 +82,7 @@ impl PPU {
             mode: Mode::HBlank,
             dot: 0,
             frame_buffer: [0; SCREEN_W as usize * SCREEN_H as usize],
+            stat_latch: false,
         }
     }
 
@@ -83,16 +90,51 @@ impl PPU {
         (self.lcdc & 1 << 7) == 0
     }
 
+    fn set_mode(&mut self, mode: Mode) {
+        self.mode = mode;
+        self.stat = (self.stat & 0xFC) | mode as u8
+    }
+
+    fn ly_lyc_check(&mut self) -> bool {
+        if self.ly == self.lyc {
+            self.stat |= 0x04;
+            self.stat_condition(STAT_LY_LYC)
+        } else {
+            self.stat &= 0xFB;
+            false
+        }
+    }
+
+    fn stat_condition(&self, bit: u8) -> bool {
+        if bit <= 2 {
+            panic!("Invalid requested STAT condition {bit}");
+        }
+        self.stat & (1 << bit) != 0
+    }
+
+    fn reset(&mut self) {
+        self.set_mode(Mode::HBlank);
+        self.ly = 0;
+        self.dot = 0;
+        self.stat &= 0xFB; // Clear LY == LYC
+        self.stat_latch = false;
+    }
+
     pub fn tick(&mut self, cycles: TCycles) -> (u8, bool) {
         if self.lcd_off() {
-            self.mode = Mode::HBlank;
-            self.ly = 0;
-            self.dot = 0;
+            self.reset();
             return (0, false);
         }
 
+        let start_mode = self.mode;
+
         let mut interrupts = 0;
         let mut frame_ready = false;
+
+        if self.stat_latch {
+            self.stat_latch = false;
+            interrupts |= Interrupt::Stat.bit();
+        }
 
         self.dot = self.dot.wrapping_add(cycles as u16);
 
@@ -106,17 +148,34 @@ impl PPU {
                 frame_ready = true;
             }
 
+            if self.ly_lyc_check() {
+                interrupts |= Interrupt::Stat.bit();
+            }
+
             self.dot -= SCANLINE_END;
         }
 
         if self.ly >= SCREEN_H {
-            self.mode = Mode::VBlank;
+            self.set_mode(Mode::VBlank);
         } else if self.dot < OAM_END {
-            self.mode = Mode::OamScan;
+            self.set_mode(Mode::OamScan);
         } else if self.dot < DRAW_END {
-            self.mode = Mode::Drawing;
+            self.set_mode(Mode::Drawing);
         } else {
-            self.mode = Mode::HBlank;
+            self.set_mode(Mode::HBlank);
+        }
+
+        if start_mode != self.mode {
+            let bit = match self.mode {
+                Mode::HBlank => STAT_HBLANK,
+                Mode::VBlank => STAT_VBLANK,
+                Mode::OamScan => STAT_OAM_SCAN,
+                Mode::Drawing => 0,
+            };
+
+            if bit != 0 && self.stat_condition(bit) {
+                interrupts |= Interrupt::Stat.bit();
+            }
         }
 
         (interrupts, frame_ready)
@@ -146,11 +205,17 @@ impl PPU {
             0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize] = value,
             0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize] = value,
             LCDC_ADDR => self.lcdc = value,
-            STAT_ADDR => self.stat = value,
+            STAT_ADDR => self.stat = (self.stat & 0x07) | (value & 0x78), // Don't allow overwriting PPU mode and LYC == LY
             SCY_ADDR => self.scy = value,
             SCX_ADDR => self.scx = value,
             LY_ADDR => (), // Read only
-            LYC_ADDR => self.lyc = value,
+            LYC_ADDR => {
+                let need_check = self.lyc != value;
+                self.lyc = value;
+                if need_check && self.ly_lyc_check() {
+                    self.stat_latch = true;
+                }
+            }
             BGP_ADDR => self.bgp = value,
             OBP0_ADDR => self.obp0 = value,
             OBP1_ADDR => self.obp1 = value,
@@ -161,7 +226,7 @@ impl PPU {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 enum Mode {
     HBlank = 0,

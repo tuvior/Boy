@@ -37,12 +37,12 @@ impl MMU {
     pub fn rb(&self, addr: u16) -> u8 {
         match addr {
             0x0000..=0x7FFF => self.cart.read_rom(addr),
-            0x8000..=0x9FFF => self.ppu.rb(addr),
+            0x8000..=0x9FFF => self.ppu.rb(addr), // VRAM
             0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize],
             0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize],
             0xE000..=0xFDFF => self.wram[(addr - 0xE000) as usize], // Echo
-            0xFE00..=0xFE9F => self.ppu.rb(addr),
-            0xFEA0..=0xFEFF => 0xFF, // Unusable
+            0xFE00..=0xFE9F => self.ppu.rb(addr),                   // OAM
+            0xFEA0..=0xFEFF => 0xFF,                                // Unusable
             0xFF00..=0xFF7F => match addr {
                 DIV_ADDR..=TAC_ADDR => self.timer.rb(addr), // Redirect to timer
                 DMA_ADDR => 0xFF,                           // Unsupported
@@ -64,13 +64,13 @@ impl MMU {
     #[inline]
     pub fn wb(&mut self, addr: u16, value: u8) {
         match addr {
-            0x0000..=0x7FFF => (), // Unwriteable
-            0x8000..=0x9FFF => self.ppu.wb(addr, value),
+            0x0000..=0x7FFF => (),                       // Unwriteable
+            0x8000..=0x9FFF => self.ppu.wb(addr, value), // VRAM
             0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize] = value,
             0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize] = value,
             0xE000..=0xFDFF => self.wram[(addr - 0xE000) as usize] = value,
-            0xFE00..=0xFE9F => self.ppu.wb(addr, value),
-            0xFEA0..=0xFEFF => (), // Unwriteable
+            0xFE00..=0xFE9F => self.ppu.wb(addr, value), // OAM
+            0xFEA0..=0xFEFF => (),                       // Unwriteable
             0xFF00..=0xFF7F => match addr {
                 DIV_ADDR..=TAC_ADDR => self.timer.wb(addr, value), // Redirect to timer
                 DMA_ADDR => (), // OAM DMA source address & start (unimplemented for now)
