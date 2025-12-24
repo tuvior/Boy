@@ -2,7 +2,7 @@ use crate::{
     cart::Cart,
     cpu::cpu::Cycles,
     interrupt::{INTERRUPT_MASK, Interrupt},
-    ppu::{LCDC_ADDR, PPU, WX_ADDR},
+    ppu::{DMA_ADDR, LCDC_ADDR, PPU, WX_ADDR},
     timer::{DIV_ADDR, TAC_ADDR, Timer},
 };
 
@@ -26,7 +26,7 @@ impl MMU {
             eram: [0; 0x2000],
             wram: [0; 0x2000],
             hram: [0; 0x7F],
-            if_: 0,
+            if_: 0xE0,
             ie: 0,
             ppu: PPU::new(),
             timer: Timer::default(),
@@ -45,6 +45,7 @@ impl MMU {
             0xFEA0..=0xFEFF => 0xFF, // Unusable
             0xFF00..=0xFF7F => match addr {
                 DIV_ADDR..=TAC_ADDR => self.timer.rb(addr), // Redirect to timer
+                DMA_ADDR => 0xFF,                           // Unsupported
                 LCDC_ADDR..=WX_ADDR => self.ppu.rb(addr),   // Redirect to PPU
                 IF_ADDR => self.if_ | 0xE0,
                 _ => 0x0, // Unimplemented
@@ -72,7 +73,8 @@ impl MMU {
             0xFEA0..=0xFEFF => (), // Unwriteable
             0xFF00..=0xFF7F => match addr {
                 DIV_ADDR..=TAC_ADDR => self.timer.wb(addr, value), // Redirect to timer
-                LCDC_ADDR..=WX_ADDR => self.ppu.wb(addr, value),   // Redirect to PPU
+                DMA_ADDR => (), // OAM DMA source address & start (unimplemented for now)
+                LCDC_ADDR..=WX_ADDR => self.ppu.wb(addr, value), // Redirect to PPU
                 IF_ADDR => self.if_ = value | 0xE0,
                 _ => (), // Unimplemented
             },
@@ -86,29 +88,31 @@ impl MMU {
         self.wb(addr.wrapping_add(1), (value >> 8) as u8);
     }
 
-    pub fn tick(&mut self, cycles: Cycles) {
+    pub fn tick(&mut self, cycles: Cycles) -> bool {
         if self.timer.tick(to_tcycles(cycles)) {
             self.request_interrupt(Interrupt::Timer.bit());
         }
 
-        self.ppu.tick(to_tcycles(cycles));
+        let (interrupts, frame_ready) = self.ppu.tick(to_tcycles(cycles));
+
+        if interrupts != 0 {
+            self.request_interrupt(interrupts);
+        }
+
+        frame_ready
     }
 
     pub fn pending_interrupts(&self) -> u8 {
         let mask = INTERRUPT_MASK;
-        let if_ = self.rb(IF_ADDR);
-
-        self.ie & if_ & mask
+        self.ie & self.if_ & mask
     }
 
-    pub fn request_interrupt(&mut self, bit: u8) {
-        let if_ = self.rb(IF_ADDR) | bit;
-        self.wb(IF_ADDR, if_);
+    pub fn request_interrupt(&mut self, bits: u8) {
+        self.if_ |= bits;
     }
 
     pub fn clear_interrupt(&mut self, bit: u8) {
-        let if_ = self.rb(IF_ADDR) & !bit;
-        self.wb(IF_ADDR, if_);
+        self.if_ &= !bit;
     }
 }
 

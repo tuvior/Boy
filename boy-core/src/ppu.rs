@@ -1,4 +1,4 @@
-use crate::mmu::TCycles;
+use crate::{interrupt::Interrupt, mmu::TCycles};
 
 pub const LCDC_ADDR: u16 = 0xFF40;
 const STAT_ADDR: u16 = 0xFF41;
@@ -6,11 +6,19 @@ const SCY_ADDR: u16 = 0xFF42;
 const SCX_ADDR: u16 = 0xFF43;
 const LY_ADDR: u16 = 0xFF44;
 const LYC_ADDR: u16 = 0xFF45;
+pub const DMA_ADDR: u16 = 0xFF46;
 const BGP_ADDR: u16 = 0xFF47;
 const OBP0_ADDR: u16 = 0xFF48;
 const OBP1_ADDR: u16 = 0xFF49;
 const WY_ADDR: u16 = 0xFF4A;
 pub const WX_ADDR: u16 = 0xFF4B;
+
+const SCREEN_W: u8 = 160; // Visible pixels
+const SCREEN_H: u8 = 144; // Visible pixels
+const VBLANK_LINES: u8 = 10;
+const OAM_END: u16 = 80; // OAM scan ends after 80 dots
+const DRAW_END: u16 = OAM_END + 172; // Finished sending pixels to the LCD (Approximative for now)
+const SCANLINE_END: u16 = 456; // Total dots, regardless of draw duration
 
 pub struct PPU {
     vram: [u8; 0x2000], // [0x8000 - 0x9FFF] — Video RAM
@@ -28,7 +36,7 @@ pub struct PPU {
     wx: u8,             // [0xFF4B] — Window X position plus 7
     mode: Mode,
     dot: u16,
-    frame_buffer: [u8; 160 * 144],
+    frame_buffer: [u8; SCREEN_W as usize * SCREEN_H as usize],
 }
 
 // LCDC
@@ -65,14 +73,53 @@ impl PPU {
             obp1: 0x0,
             wy: 0x0,
             wx: 0x0,
-            mode: Mode::OamScan,
+            mode: Mode::HBlank,
             dot: 0,
-            frame_buffer: [0; 160 * 144],
+            frame_buffer: [0; SCREEN_W as usize * SCREEN_H as usize],
         }
     }
 
+    fn lcd_off(&self) -> bool {
+        (self.lcdc & 1 << 7) == 0
+    }
+
     pub fn tick(&mut self, cycles: TCycles) -> (u8, bool) {
-        todo!();
+        if self.lcd_off() {
+            self.mode = Mode::HBlank;
+            self.ly = 0;
+            self.dot = 0;
+            return (0, false);
+        }
+
+        let mut interrupts = 0;
+        let mut frame_ready = false;
+
+        self.dot = self.dot.wrapping_add(cycles as u16);
+
+        while self.dot >= SCANLINE_END {
+            self.ly = self.ly.wrapping_add(1);
+
+            if self.ly == SCREEN_H {
+                interrupts |= Interrupt::VBlank.bit();
+            } else if self.ly == SCREEN_H + VBLANK_LINES {
+                self.ly = 0;
+                frame_ready = true;
+            }
+
+            self.dot -= SCANLINE_END;
+        }
+
+        if self.ly >= SCREEN_H {
+            self.mode = Mode::VBlank;
+        } else if self.dot < OAM_END {
+            self.mode = Mode::OamScan;
+        } else if self.dot < DRAW_END {
+            self.mode = Mode::Drawing;
+        } else {
+            self.mode = Mode::HBlank;
+        }
+
+        (interrupts, frame_ready)
     }
 
     pub fn rb(&self, addr: u16) -> u8 {
@@ -121,11 +168,4 @@ enum Mode {
     VBlank = 1,
     OamScan = 2,
     Drawing = 3,
-}
-
-impl Mode {
-    #[inline]
-    pub const fn bit(self) -> u8 {
-        1u8 << (self as u8)
-    }
 }
