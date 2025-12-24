@@ -2,7 +2,7 @@ use crate::{
     cart::Cart,
     cpu::cpu::Cycles,
     interrupt::{INTERRUPT_MASK, Interrupt},
-    timer::{DIV_ADDR, TAC_ADDR, Timer, to_tcycles},
+    timer::{DIV_ADDR, TAC_ADDR, Timer},
 };
 
 const IF_ADDR: u16 = 0xFF0F;
@@ -107,4 +107,10 @@ impl MMU {
         let if_ = self.rb(IF_ADDR) & !bit;
         self.wb(IF_ADDR, if_);
     }
+}
+
+pub type TCycles = u32;
+
+pub fn to_tcycles(cycles: Cycles) -> TCycles {
+    cycles as TCycles * 4
 }

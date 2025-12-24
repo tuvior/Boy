@@ -1,15 +1,9 @@
-use crate::cpu::cpu::Cycles;
+use crate::mmu::TCycles;
 
 pub const DIV_ADDR: u16 = 0xFF04;
 pub const TIMA_ADDR: u16 = 0xFF05;
 pub const TMA_ADDR: u16 = 0xFF06;
 pub const TAC_ADDR: u16 = 0xFF07;
-
-pub type TCycles = u32;
-
-pub fn to_tcycles(cycles: Cycles) -> TCycles {
-    cycles as TCycles * 4
-}
 
 #[derive(Default)]
 pub struct Timer {
@@ -30,7 +24,7 @@ impl Timer {
             _ => panic!("Unexpected read at addr: 0x{addr:04X} on Timer."),
         }
     }
-    
+
     pub fn wb(&mut self, addr: u16, value: u8) {
         match addr {
             DIV_ADDR => self.div = 0,
