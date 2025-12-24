@@ -31,19 +31,19 @@ impl Interrupt {
 
 #[inline]
 pub fn highest_priority(pending_interrupt: u8) -> Option<Interrupt> {
-    if pending_interrupt & (1 << Interrupt::VBlank.bit()) != 0 {
+    if pending_interrupt & (1 << Interrupt::VBlank as u8) != 0 {
         return Some(Interrupt::VBlank);
     }
-    if pending_interrupt & (1 << Interrupt::Stat.bit()) != 0 {
+    if pending_interrupt & (1 << Interrupt::Stat as u8) != 0 {
         return Some(Interrupt::Stat);
     }
-    if pending_interrupt & (1 << Interrupt::Timer.bit()) != 0 {
+    if pending_interrupt & (1 << Interrupt::Timer as u8) != 0 {
         return Some(Interrupt::Timer);
     }
-    if pending_interrupt & (1 << Interrupt::Serial.bit()) != 0 {
+    if pending_interrupt & (1 << Interrupt::Serial as u8) != 0 {
         return Some(Interrupt::Serial);
     }
-    if pending_interrupt & (1 << Interrupt::Joypad.bit()) != 0 {
+    if pending_interrupt & (1 << Interrupt::Joypad as u8) != 0 {
         return Some(Interrupt::Joypad);
     }
     None
