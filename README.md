@@ -13,6 +13,7 @@ This is a learning-focused project with an emphasis on **CPU correctness** rathe
 - [x] Basic MMU
 - [x] CPU instructions
 - [x] Interrupts
+- [x] Timers
 - [ ] PPU
 - [ ] Graphics
 - [ ] Input

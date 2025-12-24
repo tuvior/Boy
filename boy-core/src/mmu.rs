@@ -1,4 +1,9 @@
-use crate::{cart::Cart, interrupt::INTERRUPT_MASK};
+use crate::{
+    cart::Cart,
+    cpu::cpu::Cycles,
+    interrupt::{INTERRUPT_MASK, Interrupt},
+    timer::{DIV_ADDR, TAC_ADDR, Timer, to_tcycles},
+};
 
 const IF_ADDR: u16 = 0xFF0F;
 
@@ -8,9 +13,10 @@ pub struct MMU {
     eram: [u8; 0x2000], // [0xA000 - 0xBFFF] - External RAM (from cartirdge in real HW)
     wram: [u8; 0x2000], // [0xC000 - 0xDFFF] - Work RAM
     oam: [u8; 0xA0],    // [0xFE00 - 0xFE9F] - Object Attribute Memory
-    io: [u8; 0x80],     // [0xFF00 - 0xFF7F] - I/O Registers
     hram: [u8; 0x7F],   // [0xFF80 - 0xFFFE] - High RAM
+    if_: u8,            // [0xFF0F] - Interrupt Flag
     ie: u8,             // [0xFFFF] - Interrupt Enable Register
+    timer: Timer,
 }
 
 impl MMU {
@@ -21,9 +27,10 @@ impl MMU {
             eram: [0; 0x2000],
             wram: [0; 0x2000],
             oam: [0; 0xA0],
-            io: [0; 0x80],
             hram: [0; 0x7F],
+            if_: 0,
             ie: 0,
+            timer: Timer::default(),
         }
     }
 
@@ -37,7 +44,11 @@ impl MMU {
             0xE000..=0xFDFF => self.wram[(addr - 0xE000) as usize], // Echo
             0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize],
             0xFEA0..=0xFEFF => 0xFF, // Unusable
-            0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize],
+            0xFF00..=0xFF7F => match addr {
+                DIV_ADDR..=TAC_ADDR => self.timer.rb(addr),
+                IF_ADDR => self.if_ | 0xE0,
+                _ => 0x0, // Unimplemented
+            },
             0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize],
             0xFFFF => self.ie,
         }
@@ -59,7 +70,11 @@ impl MMU {
             0xE000..=0xFDFF => self.wram[(addr - 0xE000) as usize] = value,
             0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize] = value,
             0xFEA0..=0xFEFF => (), // Unwriteable
-            0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize] = value,
+            0xFF00..=0xFF7F => match addr {
+                DIV_ADDR..=TAC_ADDR => self.timer.wb(addr, value),
+                IF_ADDR => self.if_ = value | 0xE0,
+                _ => (), // Unimplemented
+            },
             0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize] = value,
             0xFFFF => self.ie = value,
         }
@@ -70,28 +85,26 @@ impl MMU {
         self.wb(addr.wrapping_add(1), (value >> 8) as u8);
     }
 
+    pub fn tick(&mut self, cycles: Cycles) {
+        if self.timer.tick(to_tcycles(cycles)) {
+            self.request_interrupt(Interrupt::Timer.bit());
+        }
+    }
+
     pub fn pending_interrupts(&self) -> u8 {
         let mask = INTERRUPT_MASK;
-        let if_ = self.if_();
+        let if_ = self.rb(IF_ADDR);
 
         self.ie & if_ & mask
     }
 
     pub fn request_interrupt(&mut self, bit: u8) {
-        let if_ = self.if_() | bit;
-        self.set_if_(if_);
+        let if_ = self.rb(IF_ADDR) | bit;
+        self.wb(IF_ADDR, if_);
     }
 
     pub fn clear_interrupt(&mut self, bit: u8) {
-        let if_ = self.if_() & !bit;
-        self.set_if_(if_);
-    }
-
-    fn if_(&self) -> u8 {
-        self.rb(IF_ADDR) | 0xE0
-    }
-
-    fn set_if_(&mut self, value: u8) {
-        self.wb(IF_ADDR, value | 0xE0)
+        let if_ = self.rb(IF_ADDR) & !bit;
+        self.wb(IF_ADDR, if_);
     }
 }

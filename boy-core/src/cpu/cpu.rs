@@ -49,7 +49,7 @@ impl CPU {
 
         // stubbed
         if self.stopped {
-            return 1;
+            return 0;
         }
 
         if self.ime

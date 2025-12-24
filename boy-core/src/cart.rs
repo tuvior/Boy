@@ -15,7 +15,7 @@ const OFFSET_HEADER_CHECKSUM: usize = 0x14D;
 const OFFSET_GLOBAL_CHECKSUM_START: usize = 0x14E;
 const OFFSET_GLOBAL_CHECKSUM_END: usize = 0x14F;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CartHeader {
     pub title: String,
     pub cgb_flag: u8,

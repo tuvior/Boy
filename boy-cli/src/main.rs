@@ -1,6 +1,5 @@
 use boy_core::cart::Cart;
-use boy_core::cpu::cpu::CPU;
-use boy_core::mmu::MMU;
+use boy_core::gameboy::GameBoy;
 use std::env;
 use std::process;
 
@@ -31,13 +30,9 @@ fn main() {
         }
     };
 
-    let header = &cart.header;
-    println!("Loaded ROM: {header}");
-
-    let mut mmu = MMU::new(cart);
-    let mut cpu = CPU::init();
+    let mut gameboy = GameBoy::new(cart);
 
     loop {
-        cpu.step(&mut mmu);
+        gameboy.step();
     }
 }

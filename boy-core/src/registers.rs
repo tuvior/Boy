@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Default)]
 pub struct Registers {
     pub a: u8, // Accumulator
     f: u8,     // Flags
