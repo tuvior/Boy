@@ -1,7 +1,7 @@
-pub mod gameboy;
 pub mod cart;
 pub mod cpu;
-pub mod mmu;
-mod registers;
+pub mod gameboy;
 mod interrupt;
+pub mod mmu;
+mod ppu;
 mod timer;

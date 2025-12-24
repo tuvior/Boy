@@ -7,10 +7,10 @@ pub const TAC_ADDR: u16 = 0xFF07;
 
 #[derive(Default)]
 pub struct Timer {
-    div: u16,      // 0xFF04 — DIV: Divider register
-    tima: u8,      // 0xFF05 — TIMA: Timer counter
-    tma: u8,       // 0xFF06 — TMA: Timer modulo
-    tac: u8,       // 0xFF07 — TAC: Timer control [- - - - - 3 2 1] 3: Enable 2 1: Clock select
+    div: u16,      // [0xFF04] — DIV: Divider register
+    tima: u8,      // [0xFF05] — TIMA: Timer counter
+    tma: u8,       // [0xFF06] — TMA: Timer modulo
+    tac: u8,       // [0xFF07] — TAC: Timer control [ - - - - - 2 1 0 ] 2: Enable 1 0: Clock select
     tima_acc: u32, // TIMA accumulator
 }
 

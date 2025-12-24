@@ -2,7 +2,7 @@ use core::panic;
 
 use crate::cpu::instructions::*;
 use crate::interrupt::{INTERRUPT_CYCLES, highest_priority};
-use crate::{mmu::MMU, registers::Registers};
+use crate::{cpu::registers::Registers, mmu::MMU};
 
 pub struct CPU {
     pub r: Registers,
