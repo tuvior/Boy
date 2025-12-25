@@ -19,9 +19,9 @@ impl GameBoy {
             mmu: MMU::new(cart),
         }
     }
-    pub fn step(&mut self) -> Cycles {
-        let m = self.cpu.step(&mut self.mmu);
-        self.mmu.tick(m);
-        m
+    pub fn step(&mut self) -> (Cycles, bool) {
+        let cycles = self.cpu.step(&mut self.mmu);
+        let frame_ready = self.mmu.tick(cycles);
+        (cycles, frame_ready)
     }
 }

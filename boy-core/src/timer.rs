@@ -1,4 +1,4 @@
-use crate::mmu::TCycles;
+use crate::{interrupt::Interrupt, mmu::TCycles};
 
 pub const DIV_ADDR: u16 = 0xFF04;
 pub const TIMA_ADDR: u16 = 0xFF05;
@@ -35,12 +35,12 @@ impl Timer {
         }
     }
 
-    pub fn tick(&mut self, cycles: TCycles) -> bool {
+    pub fn tick(&mut self, cycles: TCycles) -> u8 {
         self.div = self.div.wrapping_add(cycles as u16);
 
         // Timer enabled
         if (self.tac & 0x04) == 0 {
-            return false;
+            return 0;
         }
 
         // Clock selection
@@ -67,6 +67,10 @@ impl Timer {
             }
         }
 
-        overflowed
+        if overflowed {
+            Interrupt::Timer.bit()
+        } else {
+            0
+        }
     }
 }

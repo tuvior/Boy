@@ -89,11 +89,12 @@ impl MMU {
     }
 
     pub fn tick(&mut self, cycles: Cycles) -> bool {
-        if self.timer.tick(to_tcycles(cycles)) {
-            self.request_interrupt(Interrupt::Timer.bit());
-        }
+        let mut interrupts = 0;
+        interrupts |= self.timer.tick(to_tcycles(cycles));
 
-        let (interrupts, frame_ready) = self.ppu.tick(to_tcycles(cycles));
+        let (ppu_interrupts, frame_ready) = self.ppu.tick(to_tcycles(cycles));
+
+        interrupts |= ppu_interrupts;
 
         if interrupts != 0 {
             self.request_interrupt(interrupts);
