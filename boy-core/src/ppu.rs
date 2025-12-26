@@ -13,8 +13,8 @@ const OBP1_ADDR: u16 = 0xFF49;
 const WY_ADDR: u16 = 0xFF4A;
 pub const WX_ADDR: u16 = 0xFF4B;
 
-const SCREEN_W: u8 = 160; // Visible pixels
-const SCREEN_H: u8 = 144; // Visible pixels
+const SCREEN_W: usize = 160; // Visible pixels
+const SCREEN_H: usize = 144; // Visible pixels
 const VBLANK_LINES: u8 = 10;
 const OAM_END: u16 = 80; // OAM scan ends after 80 dots
 const DRAW_END: u16 = OAM_END + 172; // Finished sending pixels to the LCD (Approximative for now)
@@ -36,7 +36,7 @@ pub struct PPU {
     wx: u8,             // [0xFF4B] — Window X position plus 7
     mode: Mode,
     dot: u16,
-    frame_buffer: [u8; SCREEN_W as usize * SCREEN_H as usize],
+    frame_buffer: [u8; SCREEN_W * SCREEN_H],
     stat_latch: bool,
 }
 
@@ -81,13 +81,37 @@ impl PPU {
             wx: 0x0,
             mode: Mode::HBlank,
             dot: 0,
-            frame_buffer: [0; SCREEN_W as usize * SCREEN_H as usize],
+            frame_buffer: [0; SCREEN_W * SCREEN_H],
             stat_latch: false,
         }
     }
 
     fn lcd_off(&self) -> bool {
         (self.lcdc & 1 << 7) == 0
+    }
+
+    fn bg_window_enable(&self) -> bool {
+        self.lcdc & 1 != 0
+    }
+
+    fn bg_tile_map_area(&self) -> u16 {
+        if self.lcdc & (1 << 3) != 0 {
+            0x9800
+        } else {
+            0x9C00
+        }
+    }
+
+    fn tile_data_unsigned_mode(&self) -> bool {
+        self.lcdc & (1 << 4) != 0
+    }
+
+    fn tile_data_area(&self) -> u16 {
+        if self.tile_data_unsigned_mode() {
+            0x8000
+        } else {
+            0x9000
+        }
     }
 
     fn set_mode(&mut self, mode: Mode) {
@@ -120,6 +144,49 @@ impl PPU {
         self.stat_latch = false;
     }
 
+    fn render_bg_scanline(&mut self) {
+        if !self.bg_window_enable() {
+            let current_line = self.ly as usize;
+            self.frame_buffer[current_line * SCREEN_W..(current_line + 1) * SCREEN_W].fill(0);
+            return;
+        }
+
+        let ly = self.ly as u16;
+        let scy = self.scy as u16;
+        let scx = self.scx as u16;
+
+        let bg_y = (scy + ly) % 256;
+        let tile_row = bg_y / 8;
+        let pixel_row = bg_y % 8;
+
+        for x in 0..SCREEN_W {
+            let bg_x = (scx + x as u16) % 256;
+            let tile_col = bg_x / 8;
+            let pixel_col = bg_x % 8;
+
+            let tile_map_addr = self.bg_tile_map_area() + (tile_row * 32 + tile_col);
+            let tile_index = self.rb(tile_map_addr);
+
+            let tile_addr = if self.tile_data_unsigned_mode() {
+                self.tile_data_area() + (tile_index as u16) * 16
+            } else {
+                let signed_index = tile_index as i8 as i16;
+                (self.tile_data_area() as i32 + (signed_index as i32) * 16) as u16
+            } + (pixel_row * 2);
+
+            let low = self.rb(tile_addr);
+            let high = self.rb(tile_addr + 1);
+
+            let bit = 7 - pixel_col;
+
+            let color_id = ((high >> bit) & 1) << 1 | ((low >> bit) & 1);
+
+            let shade = (self.bgp >> (color_id * 2)) & 0b11;
+
+            self.frame_buffer[ly as usize * SCREEN_W + x] = shade;
+        }
+    }
+
     pub fn tick(&mut self, cycles: TCycles) -> (u8, bool) {
         if self.lcd_off() {
             self.reset();
@@ -141,9 +208,9 @@ impl PPU {
         while self.dot >= SCANLINE_END {
             self.ly = self.ly.wrapping_add(1);
 
-            if self.ly == SCREEN_H {
+            if self.ly == SCREEN_H as u8 {
                 interrupts |= Interrupt::VBlank.bit();
-            } else if self.ly == SCREEN_H + VBLANK_LINES {
+            } else if self.ly == SCREEN_H as u8 + VBLANK_LINES {
                 self.ly = 0;
                 frame_ready = true;
             }
@@ -155,14 +222,15 @@ impl PPU {
             self.dot -= SCANLINE_END;
         }
 
-        if self.ly >= SCREEN_H {
+        if self.ly >= SCREEN_H as u8 {
             self.set_mode(Mode::VBlank);
         } else if self.dot < OAM_END {
             self.set_mode(Mode::OamScan);
         } else if self.dot < DRAW_END {
             self.set_mode(Mode::Drawing);
-        } else {
+        } else if self.mode != Mode::HBlank {
             self.set_mode(Mode::HBlank);
+            self.render_bg_scanline();
         }
 
         if start_mode != self.mode {
