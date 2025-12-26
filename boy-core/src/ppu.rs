@@ -13,8 +13,8 @@ const OBP1_ADDR: u16 = 0xFF49;
 const WY_ADDR: u16 = 0xFF4A;
 pub const WX_ADDR: u16 = 0xFF4B;
 
-const SCREEN_W: usize = 160; // Visible pixels
-const SCREEN_H: usize = 144; // Visible pixels
+pub const SCREEN_W: usize = 160; // Visible pixels
+pub const SCREEN_H: usize = 144; // Visible pixels
 const VBLANK_LINES: u8 = 10;
 const OAM_END: u16 = 80; // OAM scan ends after 80 dots
 const DRAW_END: u16 = OAM_END + 172; // Finished sending pixels to the LCD (Approximative for now)
@@ -64,26 +64,33 @@ const STAT_HBLANK: u8 = 3;
 // 1 0 - PPU mode (Read-only): Indicates the PPU’s current status. Reports 0 instead when the PPU is disabled.
 
 impl PPU {
-    pub fn new() -> Self {
+    pub fn init() -> Self {
+        // This is the register state after the DMG Bios has run.
+        // ref: [https://gbdev.io/pandocs/Power_Up_Sequence.html]
+
         PPU {
             vram: [0; 0x2000],
             oam: [0; 0xA0],
-            lcdc: 0x0,
-            stat: 0x0,
+            lcdc: 0x91,
+            stat: 0x85,
             scy: 0x0,
             scx: 0x0,
             ly: 0x0,
             lyc: 0x0,
-            bgp: 0x0,
+            bgp: 0xFC,
             obp0: 0x0,
             obp1: 0x0,
             wy: 0x0,
             wx: 0x0,
-            mode: Mode::HBlank,
+            mode: Mode::VBlank,
             dot: 0,
             frame_buffer: [0; SCREEN_W * SCREEN_H],
             stat_latch: false,
         }
+    }
+
+    pub fn get_fb(&self) -> [u8; SCREEN_W * SCREEN_H] {
+        self.frame_buffer
     }
 
     fn lcd_off(&self) -> bool {
@@ -91,14 +98,14 @@ impl PPU {
     }
 
     fn bg_window_enable(&self) -> bool {
-        self.lcdc & 1 != 0
+        (self.lcdc & 1) != 0
     }
 
     fn bg_tile_map_area(&self) -> u16 {
         if self.lcdc & (1 << 3) != 0 {
-            0x9800
-        } else {
             0x9C00
+        } else {
+            0x9800
         }
     }
 
@@ -140,8 +147,8 @@ impl PPU {
         self.set_mode(Mode::HBlank);
         self.ly = 0;
         self.dot = 0;
-        self.stat &= 0xFB; // Clear LY == LYC
         self.stat_latch = false;
+        self.ly_lyc_check();
     }
 
     fn render_bg_scanline(&mut self) {
@@ -189,7 +196,6 @@ impl PPU {
 
     pub fn tick(&mut self, cycles: TCycles) -> (u8, bool) {
         if self.lcd_off() {
-            self.reset();
             return (0, false);
         }
 
@@ -272,8 +278,15 @@ impl PPU {
         match addr {
             0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize] = value,
             0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize] = value,
-            LCDC_ADDR => self.lcdc = value,
-            STAT_ADDR => self.stat = (self.stat & 0x07) | (value & 0x78), // Don't allow overwriting PPU mode and LYC == LY
+            LCDC_ADDR => {
+                let was_on = !self.lcd_off();
+                self.lcdc = value;
+                if was_on && self.lcd_off() {
+                    // Reset on  rising edge
+                    self.reset();
+                }
+            }
+            STAT_ADDR => self.stat = (self.stat & 0x07) | (value & 0x78) | 0x80, // Don't allow overwriting PPU mode and LYC == LY
             SCY_ADDR => self.scy = value,
             SCX_ADDR => self.scx = value,
             LY_ADDR => (), // Read only

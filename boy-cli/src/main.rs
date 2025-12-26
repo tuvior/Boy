@@ -1,5 +1,7 @@
 use boy_core::cart::Cart;
 use boy_core::gameboy::GameBoy;
+use minifb::Window;
+use minifb::WindowOptions;
 use std::env;
 use std::process;
 
@@ -30,9 +32,23 @@ fn main() {
         }
     };
 
+    let title = &cart.header.title.clone();
+
     let mut gameboy = GameBoy::new(cart);
 
-    loop {
-        gameboy.step();
+    const WIDTH: usize = 160;
+    const HEIGHT: usize = 144;
+
+    let mut window =
+        Window::new(title, WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
+            panic!("{}", e);
+        });
+
+    window.set_target_fps(60);
+
+    while window.is_open() {
+        let fb = gameboy.frame();
+
+        window.update_with_buffer(&fb, WIDTH, HEIGHT).unwrap();
     }
 }

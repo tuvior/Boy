@@ -14,9 +14,12 @@ This is a learning-focused project with an emphasis on **CPU correctness** rathe
 - [x] CPU instructions
 - [x] Interrupts
 - [x] Timers
-- [ ] PPU
-- [ ] Graphics
+- [x] PPU
+- - [x] Background
+- - [ ] Window
+- - [ ] Sprites
 - [ ] Input
+- [ ] Sound
 - [ ] Memory banking
 
 ## Disclaimer
