@@ -101,8 +101,26 @@ impl PPU {
         (self.lcdc & 1) != 0
     }
 
+    fn window_enable(&self) -> bool {
+        // The Window is visible (if enabled) when both coordinates are in the ranges WX=0..166, WY=0..143 respectively.
+        // Values WX=7, WY=0 place the Window at the top left of the screen, completely covering the background.
+        (self.lcdc & (1 << 5)) != 0
+            && self.bg_window_enable()
+            && self.ly >= self.wy
+            && self.ly < SCREEN_H as u8
+            && self.wx <= 166
+    }
+
     fn bg_tile_map_area(&self) -> u16 {
         if self.lcdc & (1 << 3) != 0 {
+            0x9C00
+        } else {
+            0x9800
+        }
+    }
+
+    fn window_tile_map_area(&self) -> u16 {
+        if self.lcdc & (1 << 6) != 0 {
             0x9C00
         } else {
             0x9800
@@ -194,6 +212,47 @@ impl PPU {
         }
     }
 
+    fn render_window_scanline(&mut self) {
+        if !self.window_enable() {
+            return;
+        }
+
+        let win_x0 = self.wx as i16 - 7;
+
+        let win_y = (self.ly - self.wy) as u16;
+        let tile_row = win_y / 8;
+        let pixel_row = win_y % 8;
+
+        let start_x = win_x0.max(0) as usize;
+
+        for x in start_x..SCREEN_W {
+            let win_x = (x as i16 - win_x0) as u16;
+            let tile_col = win_x / 8;
+            let pixel_col = win_x % 8;
+
+            let tile_map_addr = self.window_tile_map_area() + (tile_row * 32 + tile_col);
+            let tile_index = self.rb(tile_map_addr);
+
+            let tile_addr = if self.tile_data_unsigned_mode() {
+                self.tile_data_area() + (tile_index as u16) * 16
+            } else {
+                let signed_index = tile_index as i8 as i16;
+                (self.tile_data_area() as i32 + (signed_index as i32) * 16) as u16
+            } + (pixel_row * 2);
+
+            let low = self.rb(tile_addr);
+            let high = self.rb(tile_addr + 1);
+
+            let bit = 7 - pixel_col;
+
+            let color_id = ((high >> bit) & 1) << 1 | ((low >> bit) & 1);
+
+            let shade = (self.bgp >> (color_id * 2)) & 0b11;
+
+            self.frame_buffer[self.ly as usize * SCREEN_W + x] = shade;
+        }
+    }
+
     pub fn tick(&mut self, cycles: TCycles) -> (u8, bool) {
         if self.lcd_off() {
             return (0, false);
@@ -237,6 +296,7 @@ impl PPU {
         } else if self.mode != Mode::HBlank {
             self.set_mode(Mode::HBlank);
             self.render_bg_scanline();
+            self.render_window_scanline();
         }
 
         if start_mode != self.mode {

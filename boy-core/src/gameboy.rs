@@ -1,6 +1,6 @@
 use crate::{
     cart::Cart,
-    cpu::cpu::{CPU, Cycles},
+    cpu::cpu::CPU,
     mmu::MMU,
     ppu::{SCREEN_H, SCREEN_W},
 };

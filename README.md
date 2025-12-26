@@ -16,7 +16,7 @@ This is a learning-focused project with an emphasis on **CPU correctness** rathe
 - [x] Timers
 - [x] PPU
 - - [x] Background
-- - [ ] Window
+- - [x] Window
 - - [ ] Sprites
 - [ ] Input
 - [ ] Sound
