@@ -5,7 +5,7 @@
 
 Work-in-progress **Nintendo Game Boy (DMG-01) emulator in Rust**.
 
-This is a learning-focused project with an emphasis on **CPU correctness** rather than features or performance.
+This is a learning-focused project with an emphasis on **hardware fidelity**.
 
 ## Implementation
 
@@ -17,10 +17,16 @@ This is a learning-focused project with an emphasis on **CPU correctness** rathe
 - [x] PPU
 - - [x] Background
 - - [x] Window
-- - [ ] Sprites
+- - [x] Sprites
 - [x] Input
 - [ ] Sound
 - [ ] Memory banking
+
+## TODO
+
+- Tick correct DMA transfer instead of instant copy
+- Correct OAM scan to handle object draw priority
+- Input on tick rather than frame
 
 ## Disclaimer
 

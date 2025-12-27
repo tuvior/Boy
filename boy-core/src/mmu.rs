@@ -1,5 +1,11 @@
 use crate::{
-    cart::Cart, cpu::cpu::Cycles, gameboy::KeyStates, interrupt::INTERRUPT_MASK, joypad::{JOYP_ADDR, Joypad}, ppu::{DMA_ADDR, LCDC_ADDR, PPU, SCREEN_H, SCREEN_W, WX_ADDR}, timer::{DIV_ADDR, TAC_ADDR, Timer}
+    cart::Cart,
+    cpu::cpu::Cycles,
+    gameboy::KeyStates,
+    interrupt::INTERRUPT_MASK,
+    joypad::{JOYP_ADDR, Joypad},
+    ppu::{DMA_ADDR, LCDC_ADDR, PPU, SCREEN_H, SCREEN_W, WX_ADDR},
+    timer::{DIV_ADDR, TAC_ADDR, Timer},
 };
 
 const IF_ADDR: u16 = 0xFF0F;
@@ -73,7 +79,7 @@ impl MMU {
             0xFF00..=0xFF7F => match addr {
                 JOYP_ADDR => self.joypad.wb(addr, value), // Redirect to joypad
                 DIV_ADDR..=TAC_ADDR => self.timer.wb(addr, value), // Redirect to timer
-                DMA_ADDR => (), // OAM DMA source address & start (unimplemented for now)
+                DMA_ADDR => self.dma_transfer(value),     // OAM DMA source address & start
                 LCDC_ADDR..=WX_ADDR => self.ppu.wb(addr, value), // Redirect to PPU
                 IF_ADDR => self.if_ = value & 0x1F,
                 _ => (), // Unimplemented
@@ -94,7 +100,7 @@ impl MMU {
 
     pub fn handle_joypad(&mut self, key_states: KeyStates) {
         let interrutps = self.joypad.tick(key_states);
-        
+
         if interrutps != 0 {
             self.request_interrupt(interrutps);
         }
@@ -113,6 +119,12 @@ impl MMU {
         }
 
         frame_ready
+    }
+
+    fn dma_transfer(&mut self, value: u8) {
+        for i in 0..160 {
+            self.wb(0xFE00 + i, self.rb(((value as u16) << 8) + i))
+        }
     }
 
     pub fn pending_interrupts(&self) -> u8 {
