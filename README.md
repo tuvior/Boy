@@ -18,7 +18,7 @@ This is a learning-focused project with an emphasis on **CPU correctness** rathe
 - - [x] Background
 - - [x] Window
 - - [ ] Sprites
-- [ ] Input
+- [x] Input
 - [ ] Sound
 - [ ] Memory banking
 

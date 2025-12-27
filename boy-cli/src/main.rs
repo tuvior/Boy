@@ -1,5 +1,7 @@
 use boy_core::cart::Cart;
 use boy_core::gameboy::GameBoy;
+use boy_core::gameboy::KeyStates;
+use minifb::Key;
 use minifb::Window;
 use minifb::WindowOptions;
 use std::env;
@@ -47,8 +49,22 @@ fn main() {
     window.set_target_fps(60);
 
     while window.is_open() {
-        let fb = gameboy.frame();
+        let keys = build_key_state(&window.get_keys());
+        let fb = gameboy.frame(keys);
 
         window.update_with_buffer(&fb, WIDTH, HEIGHT).unwrap();
+    }
+}
+
+fn build_key_state(keys: &[Key]) -> KeyStates {
+    KeyStates {
+        a: keys.contains(&Key::Z),
+        b: keys.contains(&Key::X),
+        start: keys.contains(&Key::Enter),
+        select: keys.contains(&Key::RightShift),
+        up: keys.contains(&Key::Up),
+        down: keys.contains(&Key::Down),
+        left: keys.contains(&Key::Left),
+        right: keys.contains(&Key::Right),
     }
 }

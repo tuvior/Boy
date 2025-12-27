@@ -1,9 +1,5 @@
 use crate::{
-    cart::Cart,
-    cpu::cpu::Cycles,
-    interrupt::INTERRUPT_MASK,
-    ppu::{DMA_ADDR, LCDC_ADDR, PPU, SCREEN_H, SCREEN_W, WX_ADDR},
-    timer::{DIV_ADDR, TAC_ADDR, Timer},
+    cart::Cart, cpu::cpu::Cycles, gameboy::KeyStates, interrupt::INTERRUPT_MASK, joypad::{JOYP_ADDR, Joypad}, ppu::{DMA_ADDR, LCDC_ADDR, PPU, SCREEN_H, SCREEN_W, WX_ADDR}, timer::{DIV_ADDR, TAC_ADDR, Timer}
 };
 
 const IF_ADDR: u16 = 0xFF0F;
@@ -16,6 +12,7 @@ pub struct MMU {
     if_: u8,            // [0xFF0F] - Interrupt Flag
     ie: u8,             // [0xFFFF] - Interrupt Enable Register
     ppu: PPU,
+    joypad: Joypad,
     timer: Timer,
 }
 
@@ -29,6 +26,7 @@ impl MMU {
             if_: 0xE0,
             ie: 0,
             ppu: PPU::init(),
+            joypad: Joypad::new(),
             timer: Timer::default(),
         }
     }
@@ -44,6 +42,7 @@ impl MMU {
             0xFE00..=0xFE9F => self.ppu.rb(addr),      // OAM
             0xFEA0..=0xFEFF => 0xFF,                   // Unusable
             0xFF00..=0xFF7F => match addr {
+                JOYP_ADDR => self.joypad.rb(addr),          // Redirect to joypad
                 DIV_ADDR..=TAC_ADDR => self.timer.rb(addr), // Redirect to timer
                 DMA_ADDR => 0xFF,                           // Unsupported
                 LCDC_ADDR..=WX_ADDR => self.ppu.rb(addr),   // Redirect to PPU
@@ -72,6 +71,7 @@ impl MMU {
             0xFE00..=0xFE9F => self.ppu.wb(addr, value), // OAM
             0xFEA0..=0xFEFF => (),                       // Unwriteable
             0xFF00..=0xFF7F => match addr {
+                JOYP_ADDR => self.joypad.wb(addr, value), // Redirect to joypad
                 DIV_ADDR..=TAC_ADDR => self.timer.wb(addr, value), // Redirect to timer
                 DMA_ADDR => (), // OAM DMA source address & start (unimplemented for now)
                 LCDC_ADDR..=WX_ADDR => self.ppu.wb(addr, value), // Redirect to PPU
@@ -90,6 +90,14 @@ impl MMU {
 
     pub fn get_fb(&self) -> [u8; SCREEN_W * SCREEN_H] {
         self.ppu.get_fb()
+    }
+
+    pub fn handle_joypad(&mut self, key_states: KeyStates) {
+        let interrutps = self.joypad.tick(key_states);
+        
+        if interrutps != 0 {
+            self.request_interrupt(interrutps);
+        }
     }
 
     pub fn tick(&mut self, cycles: Cycles) -> bool {

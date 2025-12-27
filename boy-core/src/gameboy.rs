@@ -29,7 +29,8 @@ impl GameBoy {
         }
     }
 
-    pub fn frame(&mut self) -> [u32; SCREEN_W * SCREEN_H] {
+    pub fn frame(&mut self, key_states: KeyStates) -> [u32; SCREEN_W * SCREEN_H] {
+        self.mmu.handle_joypad(key_states);
         loop {
             let cycles = self.cpu.step(&mut self.mmu);
             let frame_ready = self.mmu.tick(cycles);
@@ -49,4 +50,16 @@ impl GameBoy {
 
         colors
     }
+}
+
+#[derive(Default)]
+pub struct KeyStates {
+    pub a: bool,
+    pub b: bool,
+    pub start: bool,
+    pub select: bool,
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool,
 }
