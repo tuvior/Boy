@@ -9,7 +9,6 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
 
 ## Screenshots
 
-
 |                                              |                                  |
 | -------------------------------------------- | -------------------------------- |
 | ![tetris](/resources/tetris.png)             | Tetris                           |

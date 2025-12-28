@@ -38,15 +38,14 @@ fn main() {
         }
     };
 
-    let title = &cart.header.title.clone();
-
+    let title = cart.get_title();
     let mut gameboy = GameBoy::new(cart);
 
     const WIDTH: usize = 160;
     const HEIGHT: usize = 144;
 
     let mut window =
-        Window::new(title, WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
+        Window::new(&title, WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
             panic!("{}", e);
         });
 
@@ -54,7 +53,9 @@ fn main() {
 
     while window.is_open() {
         let keys = build_key_state(&window.get_keys());
-        let fb = gameboy.frame(keys);
+        gameboy.run_frame(keys);
+
+        let fb = gameboy.get_last_frame_buffer();
 
         if window.is_key_pressed(Key::S, minifb::KeyRepeat::No) {
             dump_framebuffer_ppm("screenshot.ppm", &fb).unwrap();

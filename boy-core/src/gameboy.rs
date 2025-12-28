@@ -20,8 +20,8 @@ const LCD_PALETTE: [u32; 4] = [
 
 impl GameBoy {
     pub fn new(cart: Cart) -> Self {
-        let header = &cart.header;
-        println!("Booted ROM: {header}");
+        let title = cart.get_title();
+        println!("Booted ROM: {title}");
 
         GameBoy {
             cpu: CPU::init(),
@@ -29,7 +29,7 @@ impl GameBoy {
         }
     }
 
-    pub fn frame(&mut self, key_states: KeyStates) -> [u32; SCREEN_W * SCREEN_H] {
+    pub fn run_frame(&mut self, key_states: KeyStates) {
         self.mmu.handle_joypad(key_states);
         loop {
             let cycles = self.cpu.step(&mut self.mmu);
@@ -39,8 +39,9 @@ impl GameBoy {
                 break;
             }
         }
+    }
 
-        // Doing it this way for now to iterate
+    pub fn get_last_frame_buffer(&self) -> [u32; SCREEN_W * SCREEN_H] {
         let mut colors = [0u32; SCREEN_H * SCREEN_W];
 
         for (i, &pix) in self.mmu.get_fb().iter().enumerate() {

@@ -15,21 +15,20 @@ const OFFSET_HEADER_CHECKSUM: usize = 0x14D;
 const OFFSET_GLOBAL_CHECKSUM_START: usize = 0x14E;
 const OFFSET_GLOBAL_CHECKSUM_END: usize = 0x14F;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CartHeader {
-    pub title: String,
-    pub cgb_flag: u8,
-    pub new_licensee_code: String,
-    pub sgb_flag: u8,
-    pub cartridge_type: u8,
-    pub rom_size: u8,
-    pub ram_size: u8,
-    pub destination_code: u8,
-    pub old_licensee_code: u8,
-    pub mask_rom_version: u8,
-    pub header_checksum: u8,
-    pub computed_header_checksum: u8,
-    pub global_checksum: u16,
+    title: String,
+    cgb_flag: u8,
+    new_licensee_code: String,
+    sgb_flag: u8,
+    cartridge_type: u8,
+    rom_size: u8,
+    ram_size: u8,
+    destination_code: u8,
+    old_licensee_code: u8,
+    mask_rom_version: u8,
+    header_checksum: u8,
+    computed_header_checksum: u8,
+    global_checksum: u16,
 }
 
 impl CartHeader {
@@ -104,10 +103,9 @@ impl std::fmt::Display for CartError {
 
 impl std::error::Error for CartError {}
 
-#[derive(Debug)]
 pub struct Cart {
     rom: Vec<u8>,
-    pub header: CartHeader,
+    header: CartHeader,
 }
 
 impl Cart {
@@ -118,6 +116,10 @@ impl Cart {
 
     pub fn read_rom(&self, addr: u16) -> u8 {
         self.rom[addr as usize]
+    }
+
+    pub fn get_title(&self) -> String {
+        self.header.title.clone()
     }
 }
 
