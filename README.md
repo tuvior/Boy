@@ -7,6 +7,15 @@ Work-in-progress **Nintendo Game Boy (DMG-01) emulator in Rust**.
 
 This is a learning-focused project with an emphasis on **hardware fidelity**.
 
+## Screenshots
+
+
+|                                              |                                  |
+| -------------------------------------------- | -------------------------------- |
+| ![tetris](/resources/tetris.png)             | Tetris                           |
+| ![tetris](/resources/instruction_timing.png) | Blargg's instruction timing test |
+| ![tetris](/resources/cpu_instr.png)          | Blargg's CPU instruction test    |
+
 ## Implementation
 
 - [x] Cart loading

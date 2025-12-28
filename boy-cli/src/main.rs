@@ -5,6 +5,10 @@ use minifb::Key;
 use minifb::Window;
 use minifb::WindowOptions;
 use std::env;
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
+use std::path::Path;
 use std::process;
 
 fn main() {
@@ -52,8 +56,32 @@ fn main() {
         let keys = build_key_state(&window.get_keys());
         let fb = gameboy.frame(keys);
 
+        if window.is_key_pressed(Key::S, minifb::KeyRepeat::No) {
+            dump_framebuffer_ppm("screenshot.ppm", &fb).unwrap();
+        }
+
         window.update_with_buffer(&fb, WIDTH, HEIGHT).unwrap();
     }
+}
+
+pub fn dump_framebuffer_ppm<P: AsRef<Path>>(path: P, fb: &[u32; 160 * 144]) -> std::io::Result<()> {
+    let file = File::create(path)?;
+    let mut w = BufWriter::new(file);
+
+    // P6 = binary RGB
+    writeln!(w, "P6")?;
+    writeln!(w, "160 144")?;
+    writeln!(w, "255")?;
+
+    for &color in fb.iter() {
+        let r = ((color >> 16) & 0xFF) as u8;
+        let g = ((color >> 8) & 0xFF) as u8;
+        let b = (color & 0xFF) as u8;
+        w.write_all(&[r, g, b])?;
+    }
+
+    w.flush()?;
+    Ok(())
 }
 
 fn build_key_state(keys: &[Key]) -> KeyStates {
