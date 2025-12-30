@@ -23,6 +23,10 @@ impl GameBoy {
         let title = cart.get_title();
         println!("Booted ROM: {title}");
 
+        let header = &cart.header;
+
+        println!("{header}");
+
         GameBoy {
             cpu: CPU::init(),
             mmu: MMU::new(cart),

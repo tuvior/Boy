@@ -6,3 +6,4 @@ mod joypad;
 pub mod mmu;
 mod ppu;
 mod timer;
+mod cart_controller;

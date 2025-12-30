@@ -102,13 +102,13 @@ impl CPU {
         self.r.sp = self.r.sp.wrapping_sub(val)
     }
 
-    pub fn rb(&mut self, mmu: &MMU) -> u8 {
+    pub fn rb(&mut self, mmu: &mut MMU) -> u8 {
         let v = mmu.rb(self.r.pc);
         self.pc_inc(1);
         v
     }
 
-    pub fn rw(&mut self, mmu: &MMU) -> u16 {
+    pub fn rw(&mut self, mmu: &mut MMU) -> u16 {
         let v = mmu.rw(self.r.pc);
         self.pc_inc(2);
         v

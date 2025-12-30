@@ -1,3 +1,5 @@
+use crate::cart_controller::{CartController, Mbc1, Missing, RomOnly};
+
 const HEADER_END: usize = 0x14F;
 const OFFSET_TITLE_START: usize = 0x134;
 const OFFSET_TITLE_END: usize = 0x143;
@@ -15,20 +17,48 @@ const OFFSET_HEADER_CHECKSUM: usize = 0x14D;
 const OFFSET_GLOBAL_CHECKSUM_START: usize = 0x14E;
 const OFFSET_GLOBAL_CHECKSUM_END: usize = 0x14F;
 
+#[allow(unused)]
 pub struct CartHeader {
     title: String,
     cgb_flag: u8,
     new_licensee_code: String,
     sgb_flag: u8,
-    cartridge_type: u8,
-    rom_size: u8,
-    ram_size: u8,
+    cartridge_type: CartridgeType,
+    rom_size: u32,
+    ram_size: u32,
     destination_code: u8,
     old_licensee_code: u8,
     mask_rom_version: u8,
     header_checksum: u8,
     computed_header_checksum: u8,
     global_checksum: u16,
+}
+
+fn rom_size_from_id(id: u8) -> u32 {
+    match id {
+        0x00 => 32 * 1024,
+        0x01 => 64 * 1024,
+        0x02 => 128 * 1024,
+        0x03 => 256 * 1024,
+        0x04 => 512 * 1024,
+        0x05 => 1024 * 1024,
+        0x06 => 2 * 1024 * 1024,
+        0x07 => 4 * 1024 * 1024,
+        0x08 => 8 * 1024 * 1024,
+        _ => unreachable!(),
+    }
+}
+
+fn ram_size_from_id(id: u8) -> u32 {
+    match id {
+        0x00 => 0,
+        0x01 => panic!("Should be unused"),
+        0x02 => 8 * 1024,
+        0x03 => 32 * 1024,
+        0x04 => 128 * 1024,
+        0x05 => 64 * 1024,
+        _ => unreachable!(),
+    }
 }
 
 impl CartHeader {
@@ -46,8 +76,8 @@ impl CartHeader {
         let cgb_flag = rom[OFFSET_CGB_FLAG];
         let sgb_flag = rom[OFFSET_SGB_FLAG];
         let cartridge_type = rom[OFFSET_CARTRIDGE_TYPE];
-        let rom_size = rom[OFFSET_ROM_SIZE];
-        let ram_size = rom[OFFSET_RAM_SIZE];
+        let rom_size = rom_size_from_id(rom[OFFSET_ROM_SIZE]);
+        let ram_size = ram_size_from_id(rom[OFFSET_RAM_SIZE]);
         let destination_code = rom[OFFSET_DESTINATION_CODE];
         let old_licensee_code = rom[OFFSET_LICENSEE_OLD];
         let mask_rom_version = rom[OFFSET_MASK_ROM_VERSION];
@@ -63,7 +93,7 @@ impl CartHeader {
             cgb_flag,
             new_licensee_code,
             sgb_flag,
-            cartridge_type,
+            cartridge_type: CartridgeType::from_code(cartridge_type),
             rom_size,
             ram_size,
             destination_code,
@@ -80,7 +110,7 @@ impl std::fmt::Display for CartHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Title: {}, CGB Flag: 0x{:02X}, Cartridge Type: 0x{:02X}, ROM Size: 0x{:02X}, RAM Size: 0x{:02X}",
+            "Title: {}, CGB Flag: 0x{:02X}, Cartridge Type: {:?}, ROM Size: 0x{:02X}, RAM Size: 0x{:02X}",
             self.title, self.cgb_flag, self.cartridge_type, self.rom_size, self.ram_size
         )
     }
@@ -104,18 +134,32 @@ impl std::fmt::Display for CartError {
 impl std::error::Error for CartError {}
 
 pub struct Cart {
-    rom: Vec<u8>,
-    header: CartHeader,
+    pub header: CartHeader,
+    pub controller: Box<dyn CartController>,
 }
 
 impl Cart {
     pub fn from_bytes(rom: Vec<u8>) -> Result<Cart, CartError> {
         let header = CartHeader::parse(&rom)?;
-        Ok(Cart { rom, header })
+
+        let controller: Box<dyn CartController> = match header.cartridge_type {
+            CartridgeType::RomOnly => Box::new(RomOnly::new(rom, header.ram_size)),
+            CartridgeType::Mbc1 {
+                has_ram,
+                has_battery,
+            } => Box::new(Mbc1::new(rom, header.ram_size, has_ram, has_battery)),
+            _ => Box::new(Missing),
+        };
+
+        Ok(Cart { header, controller })
     }
 
-    pub fn read_rom(&self, addr: u16) -> u8 {
-        self.rom[addr as usize]
+    pub fn rb(&mut self, addr: u16) -> u8 {
+        self.controller.rb(addr)
+    }
+
+    pub fn wb(&mut self, addr: u16, value: u8) {
+        self.controller.wb(addr, value)
     }
 
     pub fn get_title(&self) -> String {
@@ -133,4 +177,153 @@ fn compute_header_checksum(rom: &[u8]) -> u8 {
 fn ascii_from_bytes(bytes: &[u8]) -> String {
     let term = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
     String::from_utf8_lossy(&bytes[..term]).to_string()
+}
+
+#[derive(Debug)]
+pub enum CartridgeType {
+    RomOnly,
+    Mbc1 {
+        has_ram: bool,
+        has_battery: bool,
+    },
+    Mbc2 {
+        has_battery: bool,
+    },
+    Mbc3 {
+        has_timer: bool,
+        has_ram: bool,
+        has_battery: bool,
+    },
+    Mbc5 {
+        has_ram: bool,
+        has_battery: bool,
+        has_rumble: bool,
+    },
+    Mbc6,
+    Mbc7 {
+        has_sensor: bool,
+        has_rumble: bool,
+        has_ram: bool,
+        has_battery: bool,
+    },
+    RomRam {
+        has_battery: bool,
+    },
+    Mmm01 {
+        has_ram: bool,
+        has_battery: bool,
+    },
+    PocketCamera,
+    BandaiTama5,
+    HuC3,
+    HuC1 {
+        has_ram: bool,
+        has_battery: bool,
+    },
+}
+
+impl CartridgeType {
+    pub fn from_code(code: u8) -> Self {
+        match code {
+            0x00 => CartridgeType::RomOnly,
+            0x01 => CartridgeType::Mbc1 {
+                has_ram: false,
+                has_battery: false,
+            },
+            0x02 => CartridgeType::Mbc1 {
+                has_ram: true,
+                has_battery: false,
+            },
+            0x03 => CartridgeType::Mbc1 {
+                has_ram: true,
+                has_battery: true,
+            },
+            0x05 => CartridgeType::Mbc2 { has_battery: false },
+            0x06 => CartridgeType::Mbc2 { has_battery: true },
+            0x08 => CartridgeType::RomRam { has_battery: false },
+            0x09 => CartridgeType::RomRam { has_battery: true },
+            0x0B => CartridgeType::Mmm01 {
+                has_ram: false,
+                has_battery: false,
+            },
+            0x0C => CartridgeType::Mmm01 {
+                has_ram: true,
+                has_battery: false,
+            },
+            0x0D => CartridgeType::Mmm01 {
+                has_ram: true,
+                has_battery: true,
+            },
+            0x0F => CartridgeType::Mbc3 {
+                has_timer: true,
+                has_ram: false,
+                has_battery: true,
+            },
+            0x10 => CartridgeType::Mbc3 {
+                has_timer: true,
+                has_ram: true,
+                has_battery: true,
+            },
+            0x11 => CartridgeType::Mbc3 {
+                has_timer: false,
+                has_ram: false,
+                has_battery: false,
+            },
+            0x12 => CartridgeType::Mbc3 {
+                has_timer: false,
+                has_ram: true,
+                has_battery: false,
+            },
+            0x13 => CartridgeType::Mbc3 {
+                has_timer: false,
+                has_ram: true,
+                has_battery: true,
+            },
+            0x19 => CartridgeType::Mbc5 {
+                has_ram: false,
+                has_battery: false,
+                has_rumble: false,
+            },
+            0x1A => CartridgeType::Mbc5 {
+                has_ram: true,
+                has_battery: false,
+                has_rumble: false,
+            },
+            0x1B => CartridgeType::Mbc5 {
+                has_ram: true,
+                has_battery: true,
+                has_rumble: false,
+            },
+            0x1C => CartridgeType::Mbc5 {
+                has_ram: false,
+                has_battery: false,
+                has_rumble: true,
+            },
+            0x1D => CartridgeType::Mbc5 {
+                has_ram: true,
+                has_battery: false,
+                has_rumble: true,
+            },
+            0x1E => CartridgeType::Mbc5 {
+                has_ram: true,
+                has_battery: true,
+                has_rumble: true,
+            },
+            0x20 => CartridgeType::Mbc6,
+            0x22 => CartridgeType::Mbc7 {
+                has_sensor: true,
+                has_rumble: true,
+                has_ram: true,
+                has_battery: true,
+            },
+            0xFC => CartridgeType::PocketCamera,
+            0xFD => CartridgeType::BandaiTama5,
+            0xFE => CartridgeType::HuC3,
+            0xFF => CartridgeType::HuC1 {
+                has_ram: true,
+                has_battery: true,
+            },
+            _ => unreachable!(),
+        }
+    }
 }

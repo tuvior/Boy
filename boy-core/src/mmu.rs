@@ -38,11 +38,11 @@ impl MMU {
     }
 
     #[inline]
-    pub fn rb(&self, addr: u16) -> u8 {
+    pub fn rb(&mut self, addr: u16) -> u8 {
         match addr {
-            0x0000..=0x7FFF => self.cart.read_rom(addr),
-            0x8000..=0x9FFF => self.ppu.rb(addr), // VRAM
-            0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize],
+            0x0000..=0x7FFF => self.cart.rb(addr),
+            0x8000..=0x9FFF => self.ppu.rb(addr),  // VRAM
+            0xA000..=0xBFFF => self.cart.rb(addr), // ERAM
             0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize],
             0xE000..=0xFDFF => self.rb(addr - 0x2000), // Echo
             0xFE00..=0xFE9F => self.ppu.rb(addr),      // OAM
@@ -60,7 +60,7 @@ impl MMU {
         }
     }
 
-    pub fn rw(&self, addr: u16) -> u16 {
+    pub fn rw(&mut self, addr: u16) -> u16 {
         let lo = self.rb(addr) as u16;
         let hi = self.rb(addr.wrapping_add(1)) as u16;
         (hi << 8) | lo
@@ -69,9 +69,9 @@ impl MMU {
     #[inline]
     pub fn wb(&mut self, addr: u16, value: u8) {
         match addr {
-            0x0000..=0x7FFF => (),                       // Unwriteable
-            0x8000..=0x9FFF => self.ppu.wb(addr, value), // VRAM
-            0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize] = value,
+            0x0000..=0x7FFF => self.cart.wb(addr, value), // Cart / MBC
+            0x8000..=0x9FFF => self.ppu.wb(addr, value),  // VRAM
+            0xA000..=0xBFFF => self.cart.wb(addr, value), // ERAM
             0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize] = value,
             0xE000..=0xFDFF => self.wb(addr - 0x2000, value),
             0xFE00..=0xFE9F => self.ppu.wb(addr, value), // OAM
@@ -123,7 +123,8 @@ impl MMU {
 
     fn dma_transfer(&mut self, value: u8) {
         for i in 0..160 {
-            self.wb(0xFE00 + i, self.rb(((value as u16) << 8) + i))
+            let to_copy = self.rb(((value as u16) << 8) + i);
+            self.wb(0xFE00 + i, to_copy)
         }
     }
 
