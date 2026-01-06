@@ -1,8 +1,8 @@
 [package]
-name = "boy-cli"
+name = "cli"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-boy-core = { path = "../boy-core" }
+core = { path = "../core" }
 minifb = "0.28"

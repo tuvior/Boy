@@ -1,6 +1,6 @@
-use boy_core::cart::Cart;
-use boy_core::gameboy::GameBoy;
-use boy_core::gameboy::KeyStates;
+use core::cart::Cart;
+use core::gameboy::GameBoy;
+use core::gameboy::KeyStates;
 use minifb::Key;
 use minifb::Window;
 use minifb::WindowOptions;
@@ -13,7 +13,7 @@ use std::process;
 
 fn main() {
     let mut args = env::args();
-    let program = args.next().unwrap_or_else(|| "boy-cli".to_string());
+    let program = args.next().unwrap_or_else(|| "cli".to_string());
     let rom_path = match args.next() {
         Some(path) => path,
         None => {
@@ -44,14 +44,18 @@ fn main() {
     const WIDTH: usize = 160;
     const HEIGHT: usize = 144;
 
-    let mut window =
-        Window::new(&title, WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
-            panic!("{}", e);
-        });
+    let opts = WindowOptions {
+        scale: minifb::Scale::X2,
+        ..Default::default()
+    };
+
+    let mut window = Window::new(&title, WIDTH, HEIGHT, opts).unwrap_or_else(|e| {
+        panic!("{}", e);
+    });
 
     window.set_target_fps(60);
 
-    while window.is_open() {
+    while window.is_open() && !window.is_key_down(Key::Escape) {
         let keys = build_key_state(&window.get_keys());
         gameboy.run_frame(keys);
 
