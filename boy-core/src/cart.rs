@@ -162,6 +162,10 @@ impl Cart {
         self.controller.wb(addr, value)
     }
 
+    pub fn save(&self) {
+        self.controller.save();
+    }
+
     pub fn get_title(&self) -> String {
         self.header.title.clone()
     }

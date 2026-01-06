@@ -9,11 +9,12 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
 
 ## Screenshots
 
-|                                              |                                  |
-| -------------------------------------------- | -------------------------------- |
-| ![tetris](/resources/tetris.png)             | Tetris                           |
-| ![tetris](/resources/instruction_timing.png) | Blargg's instruction timing test |
-| ![tetris](/resources/cpu_instr.png)          | Blargg's CPU instruction test    |
+|                                                          |                                  |
+| -------------------------------------------------------- | -------------------------------- |
+| ![tetris](/resources/tetris.png)                         | Tetris                           |
+| ![kirby](/resources/kirby.png)                           | Kirby with broken sprites        |
+| ![instruction timing](/resources/instruction_timing.png) | Blargg's instruction timing test |
+| ![cpu instr](/resources/cpu_instr.png)                   | Blargg's CPU instruction test    |
 
 ## Implementation
 
@@ -23,13 +24,20 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
 - [x] Interrupts
 - [x] Timers
 - [x] PPU
-- - [x] Background
-- - [x] Window
-- - [x] Sprites
+  - [x] Background
+  - [x] Window
+  - [x] Sprites
 - [x] Input
 - [ ] Sound
 - [ ] Memory banking
-
+  - [x] MBC1
+  - [ ] MBC2
+  - [ ] MBC3
+  - [ ] MBC4
+  - [ ] MBC5
+  - [ ] MBC6
+  - [ ] MBC7
+  - [ ] Saving RAM to disk (battery backed ram)
 ## TODO
 
 - Tick correct DMA transfer instead of instant copy

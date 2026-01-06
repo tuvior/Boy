@@ -12,7 +12,6 @@ const IF_ADDR: u16 = 0xFF0F;
 
 pub struct MMU {
     cart: Cart,         // [0x0000 - 0x7FFF] - Cartridge ROM
-    eram: [u8; 0x2000], // [0xA000 - 0xBFFF] - External RAM (from cartirdge in real HW)
     wram: [u8; 0x2000], // [0xC000 - 0xDFFF] - Work RAM
     hram: [u8; 0x7F],   // [0xFF80 - 0xFFFE] - High RAM
     if_: u8,            // [0xFF0F] - Interrupt Flag
@@ -26,7 +25,6 @@ impl MMU {
     pub fn new(cart: Cart) -> Self {
         MMU {
             cart,
-            eram: [0; 0x2000],
             wram: [0; 0x2000],
             hram: [0; 0x7F],
             if_: 0xE0,
