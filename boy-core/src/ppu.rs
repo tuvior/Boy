@@ -19,7 +19,7 @@ const VBLANK_LINES: u8 = 10;
 const OAM_END: u16 = 80; // OAM scan ends after 80 dots
 const DRAW_END: u16 = OAM_END + 172; // Finished sending pixels to the LCD (Approximative for now)
 const SCANLINE_END: u16 = 456; // Total dots, regardless of draw duration
-const MAX_SPRITES_PER_LINE: u8 = 10;
+const MAX_SPRITES_PER_LINE: usize = 10;
 
 pub struct PPU {
     vram: [u8; 0x2000], // [0x8000 - 0x9FFF] — Video RAM
@@ -232,7 +232,7 @@ impl PPU {
 
             let bit = 7 - pixel_col;
 
-            let px_idx: usize = self.ly as usize * SCREEN_W + x;
+            let px_idx = self.ly as usize * SCREEN_W + x;
 
             let color_id = ((high >> bit) & 1) << 1 | ((low >> bit) & 1);
 
@@ -277,7 +277,7 @@ impl PPU {
 
             let bit = 7 - pixel_col;
 
-            let px_idx: usize = self.ly as usize * SCREEN_W + x;
+            let px_idx = self.ly as usize * SCREEN_W + x;
 
             let color_id = ((high >> bit) & 1) << 1 | ((low >> bit) & 1);
 
@@ -289,30 +289,48 @@ impl PPU {
         }
     }
 
-    fn render_objects_scaline(&mut self) {
+    fn oam_scan(&self) -> Vec<usize> {
+        let mut hits = Vec::with_capacity(MAX_SPRITES_PER_LINE);
+        if !self.obj_enable() {
+            return hits;
+        }
+
+        let (_, obj_h) = self.obj_size();
+
+        for i in 0..40 {
+            let obj_index = i * 4;
+            let obj_y = self.oam[obj_index];
+            let sprite_y = obj_y as i16 - 16;
+            let line = self.ly as i16 - sprite_y;
+
+            if line >= 0 && line < obj_h as i16 {
+                hits.push(obj_index);
+                if hits.len() == MAX_SPRITES_PER_LINE {
+                    break;
+                }
+            }
+        }
+
+        hits
+    }
+
+    fn render_objects_scanline(&mut self, sprites: &[usize]) {
         if !self.obj_enable() {
             return;
         }
 
         let (obj_w, obj_h) = self.obj_size();
 
-        let mut sprites_drawn = 0;
+        for &obj_index in sprites.iter().rev() {
+            let obj_y = self.oam[obj_index];
+            let obj_x = self.oam[obj_index + 1];
+            let mut index = self.oam[obj_index + 2];
+            let attr = self.oam[obj_index + 3];
 
-        for e in self.oam.chunks_exact(4) {
-            let obj_y = e[0];
-            let obj_x = e[1];
-            let mut index = e[2];
-            let attr = e[3];
+            let sprite_y = obj_y as i16 - 16;
+            let sprite_x = obj_x as i16 - 8;
+            let line = (self.ly as i16) - sprite_y;
 
-            let sprite_y = obj_y.wrapping_sub(16);
-            let sprite_x = obj_x.wrapping_sub(8);
-
-            let line = self.ly.wrapping_sub(sprite_y);
-            if line >= obj_h {
-                continue;
-            }
-
-            // Attrs / Flags
             let x_flip = (attr & 0x20) != 0;
             let y_flip = (attr & 0x40) != 0;
             let priority = (attr & 0x80) != 0;
@@ -320,7 +338,11 @@ impl PPU {
 
             let palette = if use_obp1 { self.obp1 } else { self.obp0 };
 
-            let mut pixel_row = if y_flip { obj_h - 1 - line } else { line };
+            let mut pixel_row = if y_flip {
+                (obj_h as i16 - 1 - line) as u8
+            } else {
+                line as u8
+            };
 
             if obj_h == 16 {
                 index = (index & 0xFE) + (pixel_row / 8);
@@ -333,7 +355,7 @@ impl PPU {
             let high = self.rb(tile_addr + 1);
 
             for pixel_col in 0..obj_w {
-                let screen_x = sprite_x as i16 + pixel_col as i16;
+                let screen_x = sprite_x + pixel_col as i16;
                 if !(0..160).contains(&screen_x) {
                     continue;
                 }
@@ -347,7 +369,7 @@ impl PPU {
                     continue;
                 }
 
-                let px_idx: usize = self.ly as usize * SCREEN_W + screen_x as usize;
+                let px_idx = self.ly as usize * SCREEN_W + screen_x as usize;
 
                 if priority && self.bg_color[px_idx] != 0 {
                     continue;
@@ -356,13 +378,6 @@ impl PPU {
                 let shade = (palette >> (color_id * 2)) & 0b11;
 
                 self.frame_buffer[px_idx] = shade;
-            }
-
-            sprites_drawn += 1;
-
-            // Hardware limitation
-            if sprites_drawn >= MAX_SPRITES_PER_LINE {
-                break;
             }
         }
     }
@@ -411,7 +426,8 @@ impl PPU {
             self.set_mode(Mode::HBlank);
             self.render_bg_scanline();
             self.render_window_scanline();
-            self.render_objects_scaline();
+            let objs = self.oam_scan();
+            self.render_objects_scanline(&objs);
         }
 
         if start_mode != self.mode {
