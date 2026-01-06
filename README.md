@@ -12,7 +12,7 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
 |                                                          |                                  |
 | -------------------------------------------------------- | -------------------------------- |
 | ![tetris](/resources/tetris.png)                         | Tetris                           |
-| ![kirby](/resources/kirby.png)                           | Kirby with broken sprites        |
+| ![kirby](/resources/kirby.png)                           | Kirby's Dream Land               |
 | ![instruction timing](/resources/instruction_timing.png) | Blargg's instruction timing test |
 | ![cpu instr](/resources/cpu_instr.png)                   | Blargg's CPU instruction test    |
 

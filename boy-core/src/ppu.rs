@@ -132,7 +132,7 @@ impl PPU {
     }
 
     fn obj_size(&self) -> (u8, u8) {
-        if self.lcdc & (1 << 3) != 0 {
+        if self.lcdc & (1 << 2) != 0 {
             (8, 16)
         } else {
             (8, 8)
