@@ -18,7 +18,7 @@ impl Mbc2 {
             ram: [0; 0x200],
             has_battery,
             ram_enable: false,
-            rom_bank: 0,
+            rom_bank: 1,
         }
     }
 
