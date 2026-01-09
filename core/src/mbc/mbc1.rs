@@ -5,7 +5,7 @@ pub struct Mbc1 {
     ram: Vec<u8>,
     has_ram: bool,
     has_battery: bool,
-    // State
+    // Registers
     ram_enable: bool, // [0x0000 – 0x1FFF] — Enable ram by writing $A to any address
     rom_bank: u8,     // [0x2000 – 0x3FFF]
     ram_bank_or_upper_rom: u8, // [0x4000 – 0x5FFF]
