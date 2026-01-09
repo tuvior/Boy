@@ -1,5 +1,5 @@
 use crate::{
-    cpu::cpu::{CPU, Cycles},
+    cpu::{CPU, Cycles},
     mmu::MMU,
 };
 

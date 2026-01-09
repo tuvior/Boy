@@ -1,6 +1,6 @@
 use crate::{
     cart::Cart,
-    cpu::cpu::Cycles,
+    cpu::Cycles,
     gameboy::KeyStates,
     interrupt::INTERRUPT_MASK,
     joypad::{JOYP_ADDR, Joypad},

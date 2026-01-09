@@ -1,4 +1,4 @@
-use crate::cart_controller::{CartController, Mbc1, Missing, RomOnly};
+use crate::mbc::{MemoryController, Missing, mbc1::Mbc1, rom_only::RomOnly};
 
 const HEADER_END: usize = 0x14F;
 const OFFSET_TITLE_START: usize = 0x134;
@@ -135,14 +135,14 @@ impl std::error::Error for CartError {}
 
 pub struct Cart {
     pub header: CartHeader,
-    pub controller: Box<dyn CartController>,
+    pub controller: Box<dyn MemoryController>,
 }
 
 impl Cart {
     pub fn from_bytes(rom: Vec<u8>) -> Result<Cart, CartError> {
         let header = CartHeader::parse(&rom)?;
 
-        let controller: Box<dyn CartController> = match header.cartridge_type {
+        let controller: Box<dyn MemoryController> = match header.cartridge_type {
             CartridgeType::RomOnly => Box::new(RomOnly::new(rom, header.ram_size)),
             CartridgeType::Mbc1 {
                 has_ram,

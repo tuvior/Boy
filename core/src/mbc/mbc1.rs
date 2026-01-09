@@ -1,56 +1,4 @@
-pub trait CartController {
-    fn rb(&mut self, addr: u16) -> u8;
-    fn wb(&mut self, addr: u16, value: u8);
-    fn save(&self);
-}
-
-pub struct Missing;
-
-impl CartController for Missing {
-    fn rb(&mut self, _: u16) -> u8 {
-        panic!("Unimplemented cartridge type")
-    }
-
-    fn wb(&mut self, _: u16, _: u8) {
-        panic!("Unimplemented cartridge type")
-    }
-
-    fn save(&self) {}
-}
-
-pub struct RomOnly {
-    rom: Vec<u8>,
-    eram: Vec<u8>,
-}
-
-impl RomOnly {
-    pub fn new(rom: Vec<u8>, ram_size: u32) -> Self {
-        RomOnly {
-            rom,
-            eram: vec![0; ram_size as usize],
-        }
-    }
-}
-
-impl CartController for RomOnly {
-    fn rb(&mut self, addr: u16) -> u8 {
-        match addr {
-            0x0000..=0x7FFF => self.rom[addr as usize],
-            0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize],
-            _ => unreachable!(),
-        }
-    }
-
-    fn wb(&mut self, addr: u16, value: u8) {
-        match addr {
-            0x0000..=0x7FFF => (),
-            0xA000..=0xBFFF => self.eram[(addr - 0xA000) as usize] = value,
-            _ => unreachable!(),
-        }
-    }
-
-    fn save(&self) {}
-}
+use crate::mbc::MemoryController;
 
 pub struct Mbc1 {
     rom: Vec<u8>,
@@ -109,7 +57,7 @@ impl Mbc1 {
     }
 }
 
-impl CartController for Mbc1 {
+impl MemoryController for Mbc1 {
     fn rb(&mut self, addr: u16) -> u8 {
         match addr {
             0x0000..=0x3FFF => match self.banking_mode {
