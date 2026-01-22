@@ -1,4 +1,6 @@
-use crate::mbc::{MemoryController, Missing, mbc1::Mbc1, mbc2::Mbc2, rom_only::RomOnly};
+use crate::mbc::{
+    MemoryController, Missing, mbc1::Mbc1, mbc2::Mbc2, mbc3::Mbc3, rom_only::RomOnly,
+};
 
 const HEADER_END: usize = 0x14F;
 const OFFSET_TITLE_START: usize = 0x134;
@@ -149,6 +151,17 @@ impl Cart {
                 has_battery,
             } => Box::new(Mbc1::new(rom, header.ram_size, has_ram, has_battery)),
             CartridgeType::Mbc2 { has_battery } => Box::new(Mbc2::new(rom, has_battery)),
+            CartridgeType::Mbc3 {
+                has_timer,
+                has_ram,
+                has_battery,
+            } => Box::new(Mbc3::new(
+                rom,
+                header.ram_size,
+                has_ram,
+                has_battery,
+                has_timer,
+            )),
             _ => Box::new(Missing),
         };
 

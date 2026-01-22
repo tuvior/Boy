@@ -85,7 +85,8 @@ impl MemoryController for Mbc1 {
             0x6000..=0x7FFF => self.banking_mode = value & 0x01,
             0xA000..=0xBFFF => {
                 if self.ram_enable {
-                    self.ram[(addr - 0xA000) as usize] = value
+                    let bank_start = self.ram_bank_addr_start();
+                    self.ram[(addr - 0xA000) as usize + bank_start] = value
                 }
             }
             _ => (),

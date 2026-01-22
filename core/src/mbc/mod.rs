@@ -1,6 +1,8 @@
 pub mod mbc1;
 pub mod mbc2;
+pub mod mbc3;
 pub mod rom_only;
+pub mod rtc;
 
 pub trait MemoryController {
     fn rb(&mut self, addr: u16) -> u8;

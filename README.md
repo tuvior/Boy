@@ -13,6 +13,7 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
 | -------------------------------------------------------- | -------------------------------- |
 | ![tetris](/resources/tetris.png)                         | Tetris                           |
 | ![kirby](/resources/kirby.png)                           | Kirby's Dream Land               |
+| ![pokemon](/resources/pokemon-red-2.png)                 | Pokémon Red Version              |
 | ![instruction timing](/resources/instruction_timing.png) | Blargg's instruction timing test |
 | ![cpu instr](/resources/cpu_instr.png)                   | Blargg's CPU instruction test    |
 
@@ -31,13 +32,14 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
 - [ ] Sound
 - [ ] Memory banking
   - [x] MBC1
-  - [ ] MBC2
-  - [ ] MBC3
+  - [x] MBC2
+  - [x] MBC3
   - [ ] MBC4
   - [ ] MBC5
   - [ ] MBC6
   - [ ] MBC7
   - [ ] Saving RAM to disk (battery backed ram)
+  - [ ] RTC
 ## TODO
 
 - Tick correct DMA transfer instead of instant copy
