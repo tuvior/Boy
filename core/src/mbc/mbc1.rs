@@ -16,10 +16,16 @@ impl Mbc1 {
     const ROM_BANK_SIZE: usize = 16 * 1024;
     const RAM_BANK_SIZE: usize = 8 * 1024;
 
-    pub fn new(rom: Vec<u8>, ram_size: u32, has_ram: bool, has_battery: bool) -> Self {
+    pub fn new(
+        rom: Vec<u8>,
+        ram_size: u32,
+        has_ram: bool,
+        has_battery: bool,
+        save_data: Option<Vec<u8>>,
+    ) -> Self {
         Mbc1 {
             rom,
-            ram: vec![0; ram_size as usize],
+            ram: save_data.unwrap_or_else(|| vec![0; ram_size as usize]),
             has_ram,
             has_battery,
             ram_enable: false,
@@ -93,7 +99,7 @@ impl MemoryController for Mbc1 {
         }
     }
 
-    fn save(&self) {
-        if self.has_battery {}
+    fn save(&self) -> Option<Vec<u8>> {
+        self.has_battery.then_some(self.ram.clone())
     }
 }

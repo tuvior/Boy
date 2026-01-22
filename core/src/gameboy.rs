@@ -55,6 +55,10 @@ impl GameBoy {
 
         colors
     }
+
+    pub fn save(&self) -> Option<Vec<u8>> {
+        self.mmu.save()
+    }
 }
 
 #[derive(Default)]

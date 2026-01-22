@@ -23,10 +23,11 @@ impl Mbc3 {
         has_ram: bool,
         has_battery: bool,
         has_timer: bool,
+        save_data: Option<Vec<u8>>,
     ) -> Self {
         Mbc3 {
             rom,
-            ram: vec![0; ram_size as usize],
+            ram: save_data.unwrap_or_else(|| vec![0; ram_size as usize]),
             has_ram,
             has_battery,
             has_timer,
@@ -109,7 +110,7 @@ impl MemoryController for Mbc3 {
         }
     }
 
-    fn save(&self) {
-        if self.has_battery {}
+    fn save(&self) -> Option<Vec<u8>> {
+        self.has_battery.then_some(self.ram.clone())
     }
 }

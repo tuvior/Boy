@@ -141,7 +141,7 @@ pub struct Cart {
 }
 
 impl Cart {
-    pub fn from_bytes(rom: Vec<u8>) -> Result<Cart, CartError> {
+    pub fn from_bytes(rom: Vec<u8>, save_data: Option<Vec<u8>>) -> Result<Cart, CartError> {
         let header = CartHeader::parse(&rom)?;
 
         let controller: Box<dyn MemoryController> = match header.cartridge_type {
@@ -149,8 +149,14 @@ impl Cart {
             CartridgeType::Mbc1 {
                 has_ram,
                 has_battery,
-            } => Box::new(Mbc1::new(rom, header.ram_size, has_ram, has_battery)),
-            CartridgeType::Mbc2 { has_battery } => Box::new(Mbc2::new(rom, has_battery)),
+            } => Box::new(Mbc1::new(
+                rom,
+                header.ram_size,
+                has_ram,
+                has_battery,
+                save_data,
+            )),
+            CartridgeType::Mbc2 { has_battery } => Box::new(Mbc2::new(rom, has_battery, save_data)),
             CartridgeType::Mbc3 {
                 has_timer,
                 has_ram,
@@ -161,6 +167,7 @@ impl Cart {
                 has_ram,
                 has_battery,
                 has_timer,
+                save_data,
             )),
             _ => Box::new(Missing),
         };
@@ -176,8 +183,8 @@ impl Cart {
         self.controller.wb(addr, value)
     }
 
-    pub fn save(&self) {
-        self.controller.save();
+    pub fn save(&self) -> Option<Vec<u8>> {
+        self.controller.save()
     }
 
     pub fn get_title(&self) -> String {

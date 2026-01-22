@@ -7,7 +7,7 @@ pub mod rtc;
 pub trait MemoryController {
     fn rb(&mut self, addr: u16) -> u8;
     fn wb(&mut self, addr: u16, value: u8);
-    fn save(&self);
+    fn save(&self) -> Option<Vec<u8>>;
 }
 
 pub struct Missing;
@@ -21,5 +21,7 @@ impl MemoryController for Missing {
         panic!("Unimplemented cartridge type")
     }
 
-    fn save(&self) {}
+    fn save(&self) -> Option<Vec<u8>> {
+        None
+    }
 }

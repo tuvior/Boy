@@ -12,10 +12,14 @@ pub struct Mbc2 {
 impl Mbc2 {
     const ROM_BANK_SIZE: usize = 16 * 1024;
 
-    pub fn new(rom: Vec<u8>, has_battery: bool) -> Self {
+    pub fn new(rom: Vec<u8>, has_battery: bool, save_data: Option<Vec<u8>>) -> Self {
+        let mut ram = [0u8; 0x200];
+        if let Some(data) = save_data {
+            ram.copy_from_slice(&data[..0x200.min(data.len())]);
+        }
         Mbc2 {
             rom,
-            ram: [0; 0x200],
+            ram,
             has_battery,
             ram_enable: false,
             rom_bank: 1,
@@ -73,7 +77,7 @@ impl MemoryController for Mbc2 {
         }
     }
 
-    fn save(&self) {
-        if self.has_battery {}
+    fn save(&self) -> Option<Vec<u8>> {
+        self.has_battery.then_some(self.ram.to_vec())
     }
 }

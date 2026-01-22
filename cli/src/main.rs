@@ -30,7 +30,9 @@ fn main() {
         }
     };
 
-    let cart = match Cart::from_bytes(rom) {
+    let save_data = load_save_file(&rom_path);
+
+    let cart = match Cart::from_bytes(rom, save_data) {
         Ok(cart) => cart,
         Err(err) => {
             eprintln!("failed to parse rom header: {err}");
@@ -67,6 +69,27 @@ fn main() {
 
         window.update_with_buffer(&fb, WIDTH, HEIGHT).unwrap();
     }
+
+    if let Some(save_data) = gameboy.save() {
+        save_to_file(save_data, &rom_path).expect("Failed to created save file");
+    }
+}
+
+pub fn build_save_path(rom_path: &str) -> String {
+    let name = rom_path.rsplit_once(".").unwrap().0;
+    format!("{name}.sav")
+}
+
+pub fn load_save_file(rom_path: &str) -> Option<Vec<u8>> {
+    std::fs::read(build_save_path(rom_path)).ok()
+}
+
+pub fn save_to_file(data: Vec<u8>, rom_path: &str) -> std::io::Result<()> {
+    let mut file = File::create(build_save_path(rom_path))?;
+    file.write_all(&data)?;
+    file.flush()?;
+
+    Ok(())
 }
 
 pub fn dump_framebuffer_ppm<P: AsRef<Path>>(path: P, fb: &[u32; 160 * 144]) -> std::io::Result<()> {

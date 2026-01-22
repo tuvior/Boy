@@ -138,6 +138,10 @@ impl MMU {
     pub fn clear_interrupt(&mut self, bit: u8) {
         self.if_ &= !bit;
     }
+
+    pub fn save(&self) -> Option<Vec<u8>> {
+        self.cart.save()
+    }
 }
 
 pub type TCycles = u32;

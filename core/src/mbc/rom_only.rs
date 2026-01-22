@@ -31,5 +31,7 @@ impl MemoryController for RomOnly {
         }
     }
 
-    fn save(&self) {}
+    fn save(&self) -> Option<Vec<u8>> {
+        None
+    }
 }

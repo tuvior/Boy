@@ -38,12 +38,11 @@ This is a learning-focused project with an emphasis on **hardware fidelity**.
   - [ ] MBC5
   - [ ] MBC6
   - [ ] MBC7
-  - [ ] Saving RAM to disk (battery backed ram)
+  - [x] Saving RAM to disk (battery backed ram)
   - [ ] RTC
 ## TODO
 
 - Tick correct DMA transfer instead of instant copy
-- Correct OAM scan to handle object draw priority
 - Input on tick rather than frame
 
 ## Disclaimer
